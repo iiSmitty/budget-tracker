@@ -16,7 +16,10 @@ const WelcomeModal = ({
 }: WelcomeModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [income, setIncome] = useState(defaultIncome);
+  // Initialize income as empty string to allow for blank state
+  const [income, setIncome] = useState<string>(defaultIncome > 0 ? defaultIncome.toString() : "");
+  // Add validation state
+  const [isValid, setIsValid] = useState<boolean>(defaultIncome > 0);
 
   // Focus on the income input when the modal opens
   useEffect(() => {
@@ -44,12 +47,26 @@ const WelcomeModal = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, onClose, income]);
+  }, [isOpen, onClose]);
+
+  // Handle income input change
+  const handleIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setIncome(value);
+    
+    // Validate: not empty and is a valid number greater than 0
+    const numValue = parseFloat(value);
+    setIsValid(value !== "" && !isNaN(numValue) && numValue > 0);
+  };
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onClose(income);
+    
+    // Only proceed if input is valid
+    if (isValid) {
+      onClose(parseFloat(income));
+    }
   };
 
   if (!isOpen) return null;
@@ -116,25 +133,28 @@ const WelcomeModal = ({
               <span className="absolute left-3 top-3">R</span>
               <input
                 ref={inputRef}
-                type="number"
+                type="text"
                 value={income}
-                onChange={(e) => setIncome(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
+                onChange={handleIncomeChange}
+                placeholder="Enter your monthly income"
                 className={`w-full pl-8 pr-3 py-2 rounded-lg text-lg ${
                   darkMode
                     ? "bg-gray-700 text-white border-gray-600"
                     : "bg-white text-gray-900 border-gray-300"
-                } border focus:outline-none focus:ring-2 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
               />
             </div>
 
             <div className="flex justify-end">
               <button
                 type="submit"
+                disabled={!isValid}
                 className={`px-6 py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
-                  darkMode
+                  !isValid
+                    ? darkMode
+                      ? "bg-gray-600 cursor-not-allowed opacity-70"
+                      : "bg-gray-400 cursor-not-allowed opacity-70"
+                    : darkMode
                     ? "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white"
                     : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white"
                 }`}
