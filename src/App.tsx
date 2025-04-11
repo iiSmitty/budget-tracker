@@ -565,6 +565,9 @@ const BudgetApp = () => {
   // Display progress of budget spent vs total budget
   const budgetProgress = Math.round((usedBudget / totalBudget) * 100) || 0;
 
+  // Sort budget items from biggest to smallest
+const sortedBudgetItems = [...budgetItems].sort((a, b) => b.amount - a.amount);
+
   return (
     <div
       className={`min-h-screen flex justify-center items-center p-6 transition-colors duration-300 ${
@@ -791,7 +794,7 @@ const BudgetApp = () => {
               darkMode ? "bg-gray-700/50" : "bg-white shadow"
             }`}
           >
-            {budgetItems.map((item) => (
+            {sortedBudgetItems.map((item) => (
               <div
                 key={item.id}
                 className={`border-b transition-all duration-200 ${
@@ -905,7 +908,7 @@ const BudgetApp = () => {
             ))}
 
             {/* Empty state */}
-            {budgetItems.length === 0 && (
+            {sortedBudgetItems.length === 0 && (
               <div className="p-8 text-center">
                 <p className="text-lg opacity-70">No expenses added yet</p>
                 <button
