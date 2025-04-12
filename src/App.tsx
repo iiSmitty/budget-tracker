@@ -236,8 +236,6 @@ const BudgetApp = () => {
   const [currentIncome, setCurrentIncome] = useState<number>(initialIncome);
 
   // State for new item form
-  const [newDescription, setNewDescription] = useState("");
-  const [newAmount, setNewAmount] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
   // State for editing
