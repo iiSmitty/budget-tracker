@@ -4,6 +4,7 @@ import "./index.css"; // For Tailwind styles
 
 // Import the separated components
 import AppHeader from "./components/AppHeader";
+import ProgressBar from "./components/ProgressBar";
 import MonthSelector from "./components/MonthSelector";
 import CopyMonthDialog from "./components/CopyMonthDialog";
 import WelcomeModal from "./components/WelcomeModal";
@@ -814,53 +815,25 @@ const sortedBudgetItems = [...budgetItems].sort((a, b) => b.amount - a.amount);
           </div>
         </div>
 
-        {/* Budget progress */}
-        <div className="p-4">
-          <div className="mb-2 flex justify-between">
-            <span className="text-sm opacity-70">Budget Usage</span>
-            <span className="text-sm">
-              {Math.round((totalBudget / currentIncome) * 100)}%
-            </span>
-          </div>
-          <div
-            className={`h-2 w-full rounded-full ${
-              darkMode ? "bg-gray-700" : "bg-gray-200"
-            }`}
-          >
-            <div
-              className={`h-2 rounded-full ${
-                totalBudget > currentIncome
-                  ? "bg-red-500"
-                  : totalBudget > currentIncome * 0.9
-                  ? "bg-yellow-500"
-                  : "bg-green-500"
-              }`}
-              style={{
-                width: `${Math.min((totalBudget / currentIncome) * 100, 100)}%`,
-              }}
-            ></div>
-          </div>
-        </div>
+{/* Budget progress */}
+<ProgressBar 
+  label="Budget Usage"
+  value={totalBudget}
+  max={currentIncome}
+  color={totalBudget > currentIncome
+    ? "bg-red-500"
+    : totalBudget > currentIncome * 0.9
+    ? "bg-yellow-500"
+    : "bg-green-500"}
+  darkMode={darkMode}
+/>
 
-        {/* Expenses Progress */}
-        <div className="p-4">
-          <div className="mb-2 flex justify-between">
-            <span className="text-sm opacity-70">Expenses Paid</span>
-            <span className="text-sm">{budgetProgress}%</span>
-          </div>
-          <div
-            className={`h-2 w-full rounded-full ${
-              darkMode ? "bg-gray-700" : "bg-gray-200"
-            }`}
-          >
-            <div
-              className={`h-2 rounded-full bg-blue-500`}
-              style={{
-                width: `${budgetProgress}%`,
-              }}
-            ></div>
-          </div>
-        </div>
+{/* Expenses Progress */}
+<ProgressBar
+  label="Expenses Paid"
+  value={budgetProgress}
+  darkMode={darkMode}
+/>
 
         {/* Footer */}
         <div
