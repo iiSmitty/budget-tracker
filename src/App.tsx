@@ -5,6 +5,7 @@ import "./index.css"; // For Tailwind styles
 // Import the separated components
 import AppHeader from "./components/AppHeader";
 import ProgressBar from "./components/ProgressBar";
+import AddExpenseForm from "./components/AddExpenseForm";
 import MonthSelector from "./components/MonthSelector";
 import CopyMonthDialog from "./components/CopyMonthDialog";
 import WelcomeModal from "./components/WelcomeModal";
@@ -411,19 +412,17 @@ const BudgetApp = () => {
   };
 
   // Add new budget item
-  const addBudgetItem = () => {
-    if (newDescription.trim() === "" || isNaN(parseFloat(newAmount))) return;
-
+  const addBudgetItem = (description: string, amount: number) => {
+    if (description.trim() === "" || isNaN(amount)) return;
+  
     const newItem: BudgetItem = {
       id: Date.now().toString(),
-      description: newDescription,
-      amount: parseFloat(newAmount),
+      description: description,
+      amount: amount,
       checked: false,
     };
-
+  
     setBudgetItems([...budgetItems, newItem]);
-    setNewDescription("");
-    setNewAmount("");
     setShowAddForm(false);
   };
 
@@ -620,61 +619,11 @@ const sortedBudgetItems = [...budgetItems].sort((a, b) => b.amount - a.amount);
 
           {/* Add new item form */}
           {showAddForm && (
-            <div
-              className={`mb-4 p-4 rounded-lg ${
-                darkMode ? "bg-gray-700" : "bg-gray-100"
-              }`}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Car Payment"
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg ${
-                      darkMode
-                        ? "bg-gray-800 text-white border-gray-600"
-                        : "bg-white text-gray-900 border-gray-300"
-                    } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2">R</span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={newAmount}
-                      onChange={(e) => setNewAmount(e.target.value)}
-                      className={`w-full pl-8 pr-3 py-2 rounded-lg ${
-                        darkMode
-                          ? "bg-gray-800 text-white border-gray-600"
-                          : "bg-white text-gray-900 border-gray-300"
-                      } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={addBudgetItem}
-                  className={`px-4 py-2 rounded-lg ${
-                    darkMode
-                      ? "bg-green-700 hover:bg-green-600 text-white"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  }`}
-                >
-                  Add Expense
-                </button>
-              </div>
-            </div>
+            <AddExpenseForm
+              darkMode={darkMode}
+              onAddExpense={addBudgetItem}
+              onCancel={() => setShowAddForm(false)}
+            />
           )}
 
           {/* Budget items list */}
