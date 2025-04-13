@@ -126,12 +126,12 @@ const WelcomeModal = ({
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-0 md:p-4">
       {/* Backdrop with blur effect */}
       <div className="absolute inset-0 backdrop-blur-sm bg-black bg-opacity-40"></div>
 
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Decorative background elements - hidden on mobile for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-indigo-600 opacity-10 blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-purple-600 opacity-10 blur-3xl"></div>
         <div className="absolute top-1/3 left-1/4 w-40 h-40 rounded-full bg-blue-600 opacity-10 blur-3xl"></div>
@@ -139,30 +139,31 @@ const WelcomeModal = ({
 
       <div
         ref={modalRef}
-        className={`w-full max-w-md rounded-xl shadow-2xl overflow-hidden transition-all transform relative z-10 ${
+        className={`w-full h-full md:h-auto md:max-w-md md:rounded-xl shadow-2xl overflow-hidden transition-all transform relative z-10 flex flex-col ${
           darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
         }`}
+        style={{ maxHeight: '100%' }}
       >
         <div
-          className={`p-6 ${
+          className={`p-4 md:p-6 flex-shrink-0 ${
             darkMode
               ? "bg-gradient-to-r from-indigo-900 to-blue-900"
               : "bg-gradient-to-r from-indigo-600 to-blue-500"
           }`}
         >
-          <h2 className="text-2xl font-bold text-white flex items-center">
-            Welcome to BudgetTracker! <span className="ml-2 text-2xl">👋</span>
+          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
+            Welcome to BudgetTracker! <span className="ml-2 text-xl md:text-2xl">👋</span>
           </h2>
         </div>
 
-        <div className="p-6">
+        <div className="overflow-y-auto flex-grow p-4 md:p-6">
           {/* Returning User Section */}
-          <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium mb-3">Returning User?</h3>
-            <p className={`mb-3 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+          <div className="mb-5 pb-5 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium mb-2">Returning User?</h3>
+            <p className={`mb-3 text-sm md:text-base ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
               If you've used BudgetTracker before and have a backup file, you can restore your data:
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
               <button
                 onClick={handleImportClick}
                 className={`px-4 py-2 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
@@ -182,13 +183,13 @@ const WelcomeModal = ({
               />
               
               {importStatus === "success" && (
-                <span className="text-green-500 ml-2">
+                <span className="text-green-500 mt-2 md:mt-0 md:ml-2 text-sm md:text-base">
                   ✓ Data restored successfully!
                 </span>
               )}
               
               {importStatus === "error" && (
-                <span className="text-red-500 ml-2">
+                <span className="text-red-500 mt-2 md:mt-0 md:ml-2 text-sm md:text-base break-words">
                   ✗ {errorMessage || "Import failed"}
                 </span>
               )}
@@ -196,13 +197,13 @@ const WelcomeModal = ({
           </div>
 
           {/* New User Section */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3">New User?</h3>
-            <p className={`mb-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+          <div className="mb-5">
+            <h3 className="text-lg font-medium mb-2">New User?</h3>
+            <p className={`mb-3 text-sm md:text-base ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
               BudgetTracker helps you manage your monthly expenses by:
             </p>
             <ul
-              className={`list-disc pl-5 space-y-2 mb-4 ${
+              className={`list-disc pl-5 space-y-1.5 mb-4 text-sm md:text-base ${
                 darkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
@@ -212,7 +213,7 @@ const WelcomeModal = ({
               <li>Giving you a clear view of your financial situation</li>
             </ul>
             <p
-              className={`mb-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`}
+              className={`mb-3 text-sm md:text-base ${darkMode ? "text-gray-300" : "text-gray-600"}`}
             >
               Let's get started by setting your monthly income:
             </p>
@@ -222,15 +223,16 @@ const WelcomeModal = ({
             <label className="block text-sm font-medium mb-2">
               Your Monthly Income
             </label>
-            <div className="relative mb-6">
-              <span className="absolute left-3 top-3">R</span>
+            <div className="relative mb-5">
+              <span className="absolute left-3 top-3 text-sm md:text-base">R</span>
               <input
                 ref={inputRef}
                 type="text"
+                inputMode="numeric"
                 value={income}
                 onChange={handleIncomeChange}
                 placeholder="Enter your monthly income"
-                className={`w-full pl-8 pr-3 py-2 rounded-lg text-lg ${
+                className={`w-full pl-8 pr-3 py-2 rounded-lg text-base md:text-lg ${
                   darkMode
                     ? "bg-gray-700 text-white border-gray-600"
                     : "bg-white text-gray-900 border-gray-300"
@@ -242,7 +244,7 @@ const WelcomeModal = ({
               <button
                 type="submit"
                 disabled={!isValid}
-                className={`px-6 py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
+                className={`px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg w-full md:w-auto ${
                   !isValid
                     ? darkMode
                       ? "bg-gray-600 cursor-not-allowed opacity-70"
@@ -259,7 +261,7 @@ const WelcomeModal = ({
         </div>
 
         <div
-          className={`p-4 text-center text-sm ${
+          className={`p-3 md:p-4 text-center text-xs md:text-sm flex-shrink-0 ${
             darkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"
           }`}
         >
