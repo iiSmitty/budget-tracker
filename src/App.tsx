@@ -15,7 +15,12 @@ import AnimatedFooter from "./components/AnimatedFooter";
 import DataBackup from "./components/DataBackup";
 
 // Import utilities
-import { formatCurrency, getCategoryColor, loadFromLocalStorage, getMonths } from "./utils/utils";
+import {
+  formatCurrency,
+  getCategoryColor,
+  loadFromLocalStorage,
+  getMonths,
+} from "./utils/utils";
 
 // Define TypeScript interfaces
 interface BudgetItem {
@@ -42,7 +47,7 @@ const BudgetApp = () => {
 
   // State for dark mode (initialize from localStorage)
   const [darkMode, setDarkMode] = useState(initialDarkMode);
-  
+
   // State for modals
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showIncomeEditor, setShowIncomeEditor] = useState(false);
@@ -67,33 +72,33 @@ const BudgetApp = () => {
     const savedMonth = localStorage.getItem("budgetAppCurrentMonth");
     const systemMonth = new Date().toLocaleString("default", { month: "long" });
     const monthToUse = savedMonth || systemMonth;
-    
+
     console.log("Loading data for month:", monthToUse);
-    
+
     // Update current month state
     setCurrentMonth(monthToUse);
-    
+
     // Load income for this month
     const monthIncomeKey = `budgetAppIncome-${monthToUse}`;
     const savedIncome = localStorage.getItem(monthIncomeKey);
-    
+
     if (savedIncome) {
       const parsedIncome = JSON.parse(savedIncome);
       console.log("Setting income to:", parsedIncome);
       setCurrentIncome(parsedIncome);
     }
-    
+
     // Load items for this month
     const monthItemsKey = `budgetAppItems-${monthToUse}`;
     const savedItems = localStorage.getItem(monthItemsKey);
-    
+
     if (savedItems) {
       const parsedItems = JSON.parse(savedItems);
       setBudgetItems(parsedItems);
     } else {
       setBudgetItems([]);
     }
-    
+
     // Load dark mode preference
     const savedDarkMode = localStorage.getItem("budgetAppDarkMode");
     if (savedDarkMode) {
@@ -294,7 +299,7 @@ const BudgetApp = () => {
 
   return (
     <div
-      className={`min-h-screen flex justify-center items-center p-6 transition-colors duration-300 ${
+      className={`min-h-screen flex justify-center items-center p-2 sm:p-4 md:p-6 transition-colors duration-300 ${
         darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
       }`}
     >
@@ -317,7 +322,7 @@ const BudgetApp = () => {
       />
 
       <div
-        className={`w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden transition-all duration-300 ${
+        className={`w-full max-w-4xl rounded-lg md:rounded-2xl shadow-xl overflow-hidden transition-all duration-300 ${
           darkMode
             ? "bg-gray-800 shadow-indigo-900/20"
             : "bg-white shadow-indigo-200/50"
@@ -412,10 +417,7 @@ const BudgetApp = () => {
 
         {/* Data Backup Component */}
         <div className="px-4 pb-4">
-          <DataBackup 
-            darkMode={darkMode} 
-            onDataImported={handleDataImported} 
-          />
+          <DataBackup darkMode={darkMode} onDataImported={handleDataImported} />
         </div>
 
         {/* Footer */}
