@@ -89,11 +89,7 @@ The application is deployed at [budget.andresmit.co.za](https://budget.andresmit
 
 ## License
 
-[MIT License](LICENSE)
-
-## Contact
-
-André Smit - [andresmit.co.za](https://andresmit.co.za)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
