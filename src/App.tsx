@@ -12,9 +12,10 @@ import AddExpenseForm from "./components/AddExpenseForm";
 import BudgetItemList from "./components/BudgetItemList";
 import ProgressBar from "./components/ProgressBar";
 import AnimatedFooter from "./components/AnimatedFooter";
+import DataBackup from "./components/DataBackup";
 
 // Import utilities
-import { formatCurrency, getCategoryColor, loadFromLocalStorage, getMonths } from "./utils";
+import { formatCurrency, getCategoryColor, loadFromLocalStorage, getMonths } from "./utils/utils";
 
 // Define TypeScript interfaces
 interface BudgetItem {
@@ -27,13 +28,17 @@ interface BudgetItem {
 
 const BudgetApp = () => {
   // Initialize state with data from localStorage
+  const loadStoredData = () => {
+    return loadFromLocalStorage();
+  };
+
   const {
     isFirstVisit: initialFirstVisit,
     darkMode: initialDarkMode,
     month: initialMonth,
     items: initialItems,
     income: initialIncome,
-  } = loadFromLocalStorage();
+  } = loadStoredData();
 
   // State for dark mode (initialize from localStorage)
   const [darkMode, setDarkMode] = useState(initialDarkMode);
@@ -55,6 +60,15 @@ const BudgetApp = () => {
 
   // Get all months
   const months = getMonths();
+
+  // Function to handle data import - reload all state from localStorage
+  const handleDataImported = () => {
+    const freshData = loadStoredData();
+    setDarkMode(freshData.darkMode);
+    setCurrentMonth(freshData.month);
+    setBudgetItems(freshData.items);
+    setCurrentIncome(freshData.income);
+  };
 
   // Save to localStorage when states change
   useEffect(() => {
@@ -363,6 +377,14 @@ const BudgetApp = () => {
           color="bg-blue-500"
           darkMode={darkMode}
         />
+
+        {/* Data Backup Component */}
+        <div className="px-4 pb-4">
+          <DataBackup 
+            darkMode={darkMode} 
+            onDataImported={handleDataImported} 
+          />
+        </div>
 
         {/* Footer */}
         <AnimatedFooter darkMode={darkMode} />
