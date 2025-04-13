@@ -63,11 +63,42 @@ const BudgetApp = () => {
 
   // Function to handle data import - reload all state from localStorage
   const handleDataImported = () => {
-    const freshData = loadStoredData();
-    setDarkMode(freshData.darkMode);
-    setCurrentMonth(freshData.month);
-    setBudgetItems(freshData.items);
-    setCurrentIncome(freshData.income);
+    // Get the current month first (either from localStorage or use current month)
+    const savedMonth = localStorage.getItem("budgetAppCurrentMonth");
+    const systemMonth = new Date().toLocaleString("default", { month: "long" });
+    const monthToUse = savedMonth || systemMonth;
+    
+    console.log("Loading data for month:", monthToUse);
+    
+    // Update current month state
+    setCurrentMonth(monthToUse);
+    
+    // Load income for this month
+    const monthIncomeKey = `budgetAppIncome-${monthToUse}`;
+    const savedIncome = localStorage.getItem(monthIncomeKey);
+    
+    if (savedIncome) {
+      const parsedIncome = JSON.parse(savedIncome);
+      console.log("Setting income to:", parsedIncome);
+      setCurrentIncome(parsedIncome);
+    }
+    
+    // Load items for this month
+    const monthItemsKey = `budgetAppItems-${monthToUse}`;
+    const savedItems = localStorage.getItem(monthItemsKey);
+    
+    if (savedItems) {
+      const parsedItems = JSON.parse(savedItems);
+      setBudgetItems(parsedItems);
+    } else {
+      setBudgetItems([]);
+    }
+    
+    // Load dark mode preference
+    const savedDarkMode = localStorage.getItem("budgetAppDarkMode");
+    if (savedDarkMode) {
+      setDarkMode(JSON.parse(savedDarkMode));
+    }
   };
 
   // Save to localStorage when states change
@@ -273,6 +304,7 @@ const BudgetApp = () => {
         onClose={handleWelcomeClose}
         darkMode={darkMode}
         defaultIncome={currentIncome}
+        onDataImported={handleDataImported}
       />
 
       {/* Income Editor Modal */}

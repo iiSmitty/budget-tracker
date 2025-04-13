@@ -1,11 +1,13 @@
 import ReactDOM from "react-dom";
 import { useRef, useEffect, useState } from "react";
+import { importBudgetData } from "../utils/dataBackup"; // Import the data import function
 
 interface WelcomeModalProps {
   isOpen: boolean;
   onClose: (income: number) => void;
   darkMode: boolean;
   defaultIncome: number;
+  onDataImported: () => void; // Add callback for data import
 }
 
 const WelcomeModal = ({
@@ -13,13 +15,18 @@ const WelcomeModal = ({
   onClose,
   darkMode,
   defaultIncome,
+  onDataImported,
 }: WelcomeModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Initialize income as empty string to allow for blank state
   const [income, setIncome] = useState<string>(defaultIncome > 0 ? defaultIncome.toString() : "");
   // Add validation state
   const [isValid, setIsValid] = useState<boolean>(defaultIncome > 0);
+  // Add import status state
+  const [importStatus, setImportStatus] = useState<"idle" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // Focus on the income input when the modal opens
   useEffect(() => {
@@ -69,6 +76,53 @@ const WelcomeModal = ({
     }
   };
 
+  // Handle import button click
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle file selection for import
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    try {
+      setImportStatus("idle");
+      setErrorMessage("");
+      
+      await importBudgetData(file);
+      setImportStatus("success");
+      
+      // Notify parent component about successful import
+      onDataImported();
+      
+      // Close the welcome modal after a short delay to show success message
+      setTimeout(() => {
+        // Important: Since we've imported data, we should use the imported income
+        const currentMonth = localStorage.getItem("budgetAppCurrentMonth") || 
+          new Date().toLocaleString("default", { month: "long" });
+        
+        const incomeKey = `budgetAppIncome-${currentMonth}`;
+        const savedIncome = localStorage.getItem(incomeKey);
+        const importedIncome = savedIncome ? JSON.parse(savedIncome) : 0;
+        
+        console.log("Imported income:", importedIncome);
+        onClose(importedIncome); // Pass the imported income to the onClose handler
+      }, 1500);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Import failed:", error);
+      setImportStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error occurred");
+    }
+  };
+
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
@@ -102,10 +156,49 @@ const WelcomeModal = ({
         </div>
 
         <div className="p-6">
+          {/* Returning User Section */}
+          <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium mb-3">Returning User?</h3>
+            <p className={`mb-3 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+              If you've used BudgetTracker before and have a backup file, you can restore your data:
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleImportClick}
+                className={`px-4 py-2 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
+                  darkMode
+                    ? "bg-purple-600 hover:bg-purple-500 text-white"
+                    : "bg-purple-500 hover:bg-purple-600 text-white"
+                }`}
+              >
+                Import Backup
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".json"
+                className="hidden"
+              />
+              
+              {importStatus === "success" && (
+                <span className="text-green-500 ml-2">
+                  ✓ Data restored successfully!
+                </span>
+              )}
+              
+              {importStatus === "error" && (
+                <span className="text-red-500 ml-2">
+                  ✗ {errorMessage || "Import failed"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* New User Section */}
           <div className="mb-6">
-            <p
-              className={`mb-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`}
-            >
+            <h3 className="text-lg font-medium mb-3">New User?</h3>
+            <p className={`mb-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
               BudgetTracker helps you manage your monthly expenses by:
             </p>
             <ul
