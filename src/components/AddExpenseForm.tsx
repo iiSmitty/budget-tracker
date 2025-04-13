@@ -1,4 +1,3 @@
-// AddExpenseForm.jsx
 import { useState } from "react";
 
 interface AddExpenseFormProps {
