@@ -76,7 +76,7 @@ const BudgetItem = ({
         left: Math.max(10, rect.left - 100), // Keep dropdown on screen
       });
     } else {
-      // Use original desktop positioning from your code
+      // Use original desktop positioning
       setDropdownPosition({
         top: rect.bottom + 5,
         left: rect.right - 120, // Align right edge with button
@@ -113,11 +113,14 @@ const BudgetItem = ({
     setIsEditing(false);
   };
 
-  // Check if description is long enough to need expansion
-  const isLongDescription = item.description.length > 25;
+  // Check if description is long enough to need expansion on mobile
+  const isLongDescription = item.description.length > 20;
+
+  // Get the color class for the amount tag
+  const colorClass = getCategoryColor(item.amount, darkMode);
 
   if (isEditing) {
-    // Use original editing layout from your code
+    // Use original editing layout
     return (
       <div className="p-4 grid grid-cols-12 gap-2 items-center">
         <div className="col-span-6 md:col-span-7">
@@ -165,72 +168,67 @@ const BudgetItem = ({
     );
   }
 
-  // For mobile with long descriptions, use a modified layout
-  if (isMobile && isLongDescription) {
+  // Mobile layout - now with improved tag display
+  if (isMobile) {
     return (
-      <div className="p-3 border-b border-gray-700">
-        {/* First row: checkbox and description */}
-        <div className="flex items-center mb-2">
-          <div className="w-10 flex-none">
-            <input
-              type="checkbox"
-              checked={item.checked}
-              onChange={() => onToggleChecked(item.id)}
-              className="h-5 w-5 rounded"
-            />
+      <div className="p-3 grid grid-cols-12 items-center border-b border-gray-700">
+        {/* Checkbox */}
+        <div className="col-span-1">
+          <input
+            type="checkbox"
+            checked={item.checked}
+            onChange={() => onToggleChecked(item.id)}
+            className="h-5 w-5 rounded"
+          />
+        </div>
+
+        {/* Description - truncated for long text */}
+        <div className="col-span-7">
+          <div
+            className={`${item.checked ? "line-through " : ""} ${
+              isLongDescription && !isExpanded ? "truncate" : ""
+            }`}
+            onClick={isLongDescription ? toggleExpansion : undefined}
+            title={isLongDescription ? item.description : ""}
+          >
+            {item.description}
           </div>
-          <div className="flex-grow pr-2">
-            <div
-              className={`${item.checked ? "line-through " : ""} ${
-                isExpanded ? "" : "line-clamp-1"
-              }`}
-              onClick={toggleExpansion}
-            >
-              {item.description}
-            </div>
-            {isLongDescription && (
-              <div className="text-xs text-gray-400 mt-0.5">
-                {isExpanded ? "Tap to collapse" : "Tap to expand"}
-              </div>
-            )}
+          {isLongDescription && isExpanded && (
+            <div className="text-xs text-gray-400 mt-0.5">Tap to collapse</div>
+          )}
+        </div>
+
+        {/* Amount - specifically fixed for mobile */}
+        <div className="col-span-3 flex justify-end pr-2">
+          <div className={`py-1 px-2 rounded-full text-center ${colorClass}`}>
+            {formatCurrency(item.amount)}
           </div>
         </div>
 
-        {/* Second row: amount and menu button with exact alignment */}
-        <div className="flex items-center justify-end">
-          <div
-            className={`py-1 px-2 rounded-full text-center mr-4 ${getCategoryColor(
-              item.amount,
-              darkMode
-            )}`}
+        {/* Menu button */}
+        <div className="col-span-1 flex justify-center">
+          <button
+            onClick={toggleDropdown}
+            className={`p-1 rounded-full ${
+              darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
+            }`}
           >
-            {formatCurrency(item.amount)}
-          </div>
-          <div className="relative">
-            <button
-              onClick={toggleDropdown}
-              className={`p-1 rounded-full ${
-                darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
-              }`}
-              aria-label="Options"
-            >
-              •••
-            </button>
-            <DropdownMenu
-              isOpen={isDropdownOpen}
-              onClose={() => setIsDropdownOpen(false)}
-              position={dropdownPosition}
-              darkMode={darkMode}
-              onEdit={startEdit}
-              onDelete={() => onDelete(item.id)}
-            />
-          </div>
+            •••
+          </button>
+          <DropdownMenu
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+            position={dropdownPosition}
+            darkMode={darkMode}
+            onEdit={startEdit}
+            onDelete={() => onDelete(item.id)}
+          />
         </div>
       </div>
     );
   }
 
-  // Use your exact original layout for desktop and mobile with short descriptions
+  // Desktop layout - unchanged from original
   return (
     <div className="p-4 grid grid-cols-12 gap-2 items-center">
       <div className="col-span-1">
@@ -247,10 +245,7 @@ const BudgetItem = ({
         </div>
       </div>
       <div
-        className={`col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center ${getCategoryColor(
-          item.amount,
-          darkMode
-        )}`}
+        className={`col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center ${colorClass}`}
       >
         {formatCurrency(item.amount)}
       </div>
