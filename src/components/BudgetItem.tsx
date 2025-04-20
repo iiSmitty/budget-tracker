@@ -38,19 +38,28 @@ const BudgetItem = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
-  // Toggle dropdown
+  // Toggle dropdown with improved positioning for mobile
   const toggleDropdown = (event: React.MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
 
     const buttonElement = event.currentTarget as HTMLElement;
     const rect = buttonElement.getBoundingClientRect();
-    
-    setDropdownPosition({
-      top: rect.bottom + 5,
-      left: rect.right - 120, // Align right edge with button
-    });
-    
+    const isMobile = window.innerWidth < 768;
+
+    // Adjust positioning for mobile screens
+    if (isMobile) {
+      setDropdownPosition({
+        top: rect.bottom + 5,
+        left: Math.min(rect.left, window.innerWidth - 150), // Ensure it doesn't go off-screen
+      });
+    } else {
+      setDropdownPosition({
+        top: rect.bottom + 5,
+        left: rect.right - 120, // Align right edge with button for desktop
+      });
+    }
+
     setIsDropdownOpen(!isDropdownOpen);
   };
 
@@ -65,7 +74,7 @@ const BudgetItem = ({
   // Save edits
   const saveEdit = () => {
     if (editDescription.trim() === "" || isNaN(parseFloat(editAmount))) return;
-    
+
     onEdit(item.id, editDescription, parseFloat(editAmount));
     setIsEditing(false);
   };
@@ -125,6 +134,7 @@ const BudgetItem = ({
 
   return (
     <div className="p-4 grid grid-cols-12 gap-2 items-center">
+      {/* Checkbox - reduced width on mobile */}
       <div className="col-span-1">
         <input
           type="checkbox"
@@ -133,26 +143,39 @@ const BudgetItem = ({
           className="h-5 w-5 rounded"
         />
       </div>
-      <div className="col-span-6 md:col-span-8">
-        <div className={item.checked ? "line-through" : ""}>
+
+      {/* Description - adjusted for better mobile space */}
+      <div className="col-span-5 sm:col-span-6 md:col-span-7">
+        <div
+          className={
+            item.checked
+              ? "line-through text-sm sm:text-base"
+              : "text-sm sm:text-base"
+          }
+        >
           {item.description}
         </div>
       </div>
+
+      {/* Amount - adjusted width on mobile */}
       <div
-        className={`col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center ${getCategoryColor(
+        className={`col-span-3 sm:col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center text-sm ${getCategoryColor(
           item.amount,
           darkMode
         )}`}
       >
         {formatCurrency(item.amount)}
       </div>
-      <div className="col-span-2 md:col-span-1 flex justify-end">
+
+      {/* Menu button - fixed position */}
+      <div className="col-span-3 sm:col-span-2 md:col-span-2 flex justify-end">
         <div className="dropdown relative">
           <button
             onClick={toggleDropdown}
             className={`dropdown-toggle p-1 rounded-full ${
               darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
             }`}
+            aria-label="Options"
           >
             •••
           </button>
