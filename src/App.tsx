@@ -13,6 +13,7 @@ import BudgetItemList from "./components/BudgetItemList";
 import ProgressBar from "./components/ProgressBar";
 import AnimatedFooter from "./components/AnimatedFooter";
 import DataBackup from "./components/DataBackup";
+import ImportExportInfoModal from "./components/ImportExportInfoModal";
 
 // Import utilities
 import {
@@ -53,6 +54,7 @@ const BudgetApp = () => {
   const [showIncomeEditor, setShowIncomeEditor] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showImportExportModal, setShowImportExportModal] = useState(false);
 
   // State for current month (initialize from localStorage)
   const [currentMonth, setCurrentMonth] = useState(initialMonth);
@@ -104,6 +106,20 @@ const BudgetApp = () => {
     if (savedDarkMode) {
       setDarkMode(JSON.parse(savedDarkMode));
     }
+
+    // Check and show import/export modal for first-time users who imported
+    const hasSeenModal = localStorage.getItem("budgetAppImportExportInfoSeen");
+    if (hasSeenModal !== "true") {
+      setShowWelcomeModal(false); // Ensure welcome modal is closed
+      setShowImportExportModal(true); // Show import/export modal
+    }
+  };
+
+  const handleIncomeEditorClose = (income: number | null) => {
+    if (income !== null) {
+      setCurrentIncome(income);
+    }
+    setShowIncomeEditor(false);
   };
 
   // Save to localStorage when states change
@@ -146,14 +162,14 @@ const BudgetApp = () => {
     setCurrentIncome(income);
     setShowWelcomeModal(false);
     localStorage.setItem("budgetAppVisited", "true");
-  };
 
-  // Handle income editor close
-  const handleIncomeEditorClose = (income: number | null) => {
-    if (income !== null) {
-      setCurrentIncome(income);
+    // Immediately check and show the import/export modal if needed
+    const hasSeenImportExportModal = localStorage.getItem(
+      "budgetAppImportExportInfoSeen"
+    );
+    if (hasSeenImportExportModal !== "true") {
+      setShowImportExportModal(true);
     }
-    setShowIncomeEditor(false);
   };
 
   // Custom function to handle month changes
@@ -319,6 +335,13 @@ const BudgetApp = () => {
         currentIncome={currentIncome}
         darkMode={darkMode}
         month={currentMonth}
+      />
+
+      {/* Import/Export Info Modal */}
+      <ImportExportInfoModal
+        isOpen={showImportExportModal}
+        onClose={() => setShowImportExportModal(false)}
+        darkMode={darkMode}
       />
 
       <div
