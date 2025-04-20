@@ -38,7 +38,7 @@ const BudgetItem = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
-  // Toggle dropdown with much better mobile positioning
+  // Toggle dropdown with improved positioning
   const toggleDropdown = (event: React.MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
@@ -78,8 +78,8 @@ const BudgetItem = ({
 
   if (isEditing) {
     return (
-      <div className="p-3 grid grid-cols-12 gap-2 items-center">
-        <div className="col-span-7">
+      <div className="p-3 flex flex-wrap items-center">
+        <div className="w-full sm:w-2/3 mb-2 sm:mb-0 sm:pr-2">
           <input
             type="text"
             value={editDescription}
@@ -91,7 +91,7 @@ const BudgetItem = ({
             } border focus:outline-none focus:ring-1 focus:ring-indigo-500`}
           />
         </div>
-        <div className="col-span-3">
+        <div className="w-2/3 sm:w-1/4">
           <div className="relative">
             <span className="absolute left-2 top-1.5 text-xs">R</span>
             <input
@@ -106,7 +106,7 @@ const BudgetItem = ({
             />
           </div>
         </div>
-        <div className="col-span-2 flex justify-end gap-1">
+        <div className="w-1/3 sm:w-1/12 flex justify-end gap-1">
           <button
             onClick={saveEdit}
             className="p-1 rounded-lg bg-green-600 text-white text-sm"
@@ -125,57 +125,65 @@ const BudgetItem = ({
   }
 
   return (
-    <div className="p-3 flex items-center border-b border-gray-700">
-      {/* Using flex instead of grid for better mobile layout */}
-      <div className="flex-none mr-2">
-        <input
-          type="checkbox"
-          checked={item.checked}
-          onChange={() => onToggleChecked(item.id)}
-          className="h-5 w-5 rounded"
-        />
-      </div>
-
-      {/* Description with flex-grow to take available space */}
-      <div className="flex-grow mr-2">
-        <div
-          className={`${
-            item.checked ? "line-through " : ""
-          }text-sm truncate max-w-full`}
-        >
-          {item.description}
+    <div className="p-3 border-b border-gray-700">
+      {/* Main container with fixed layout */}
+      <div className="flex items-center">
+        {/* Fixed-width section for checkbox */}
+        <div className="w-10 flex-none">
+          <input
+            type="checkbox"
+            checked={item.checked}
+            onChange={() => onToggleChecked(item.id)}
+            className="h-5 w-5 rounded"
+          />
         </div>
-      </div>
 
-      {/* Fixed width for amount */}
-      <div
-        className={`flex-none w-24 py-1 px-2 rounded-full text-center text-sm ${getCategoryColor(
-          item.amount,
-          darkMode
-        )}`}
-      >
-        {formatCurrency(item.amount)}
-      </div>
+        {/* Flex container for description and amount to ensure alignment */}
+        <div className="flex flex-grow justify-between items-center">
+          {/* Description with max width to allow truncation */}
+          <div className="mr-2 max-w-[calc(100%-110px)]">
+            <div
+              className={`${
+                item.checked ? "line-through " : ""
+              }text-sm truncate`}
+            >
+              {item.description}
+            </div>
+          </div>
 
-      {/* Fixed width for menu button */}
-      <div className="flex-none w-8 ml-1 text-center">
-        <button
-          onClick={toggleDropdown}
-          className={`w-full p-1 rounded-full ${
-            darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
-          }`}
-          aria-label="Options"
-        >
-          •••
-        </button>
-        <DropdownMenu
-          isOpen={isDropdownOpen}
-          onClose={() => setIsDropdownOpen(false)}
-          position={dropdownPosition}
-          darkMode={darkMode}
-          onEdit={startEdit}
-          onDelete={() => onDelete(item.id)}
-        />
+          {/* Fixed-width container for amount */}
+          <div className="flex-none w-[90px]">
+            <div
+              className={`py-1 px-2 rounded-full text-center text-sm ${getCategoryColor(
+                item.amount,
+                darkMode
+              )}`}
+            >
+              {formatCurrency(item.amount)}
+            </div>
+          </div>
+        </div>
+
+        {/* Fixed-width for menu button */}
+        <div className="w-8 flex-none text-center ml-1">
+          <button
+            onClick={toggleDropdown}
+            className={`w-full p-1 rounded-full ${
+              darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
+            }`}
+            aria-label="Options"
+          >
+            •••
+          </button>
+          <DropdownMenu
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+            position={dropdownPosition}
+            darkMode={darkMode}
+            onEdit={startEdit}
+            onDelete={() => onDelete(item.id)}
+          />
+        </div>
       </div>
     </div>
   );
