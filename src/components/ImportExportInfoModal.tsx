@@ -66,104 +66,89 @@ const ImportExportInfoModal = ({
 
       <div
         ref={modalRef}
-        className={`w-full h-auto md:max-w-md md:rounded-xl shadow-2xl overflow-hidden transition-all transform relative z-10 flex flex-col ${
+        className={`w-full h-full md:h-auto md:max-w-md md:rounded-xl shadow-2xl overflow-hidden transition-all transform relative z-10 flex flex-col ${
           darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
         }`}
-        style={{ maxHeight: "90vh" }}
       >
         <div
-          className={`p-4 md:p-6 flex-shrink-0 ${
+          className={`p-3 md:p-6 flex-shrink-0 ${
             darkMode
               ? "bg-gradient-to-r from-teal-900 to-blue-900"
               : "bg-gradient-to-r from-teal-600 to-blue-500"
           }`}
         >
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
+          <h2 className="text-lg md:text-2xl font-bold text-white flex items-center">
             Data Backup and Restore{" "}
             <span className="ml-2 text-xl md:text-2xl">💾</span>
           </h2>
         </div>
 
-        <div className="overflow-y-auto flex-grow p-4 md:p-6">
-          <div className="mb-5">
-            <h3 className="text-lg font-medium mb-2">Why is this important?</h3>
-            <p
-              className={`mb-3 text-sm md:text-base ${
-                darkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              BudgetTracker stores all your data locally in your browser's
-              storage (localStorage). This is convenient but comes with some
-              limitations:
-            </p>
-            <ul
-              className={`list-disc pl-5 space-y-2 mb-4 text-sm md:text-base ${
-                darkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              <li>
-                If you <strong>clear your browser cache</strong>, your budget
-                data will be deleted
-              </li>
-              <li>
-                When using a <strong>different device or browser</strong>, your
-                data won't be available
-              </li>
-              <li>
-                There's no automatic cloud backup of your financial information
-              </li>
-            </ul>
-          </div>
-
-          <div className="mb-5 pb-5 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium mb-2">
-              How to use the Import/Export feature
+        <div className="overflow-y-auto flex-grow p-3 md:p-6">
+          <div className="mb-4 md:mb-5">
+            <h3 className="text-base md:text-lg font-medium mb-1.5 md:mb-2">
+              Why is this important?
             </h3>
             <p
-              className={`mb-3 text-sm md:text-base ${
+              className={`mb-2 md:mb-3 text-sm md:text-base ${
                 darkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              We recommend regularly exporting your data as a backup:
+              BudgetTracker stores all your data locally in your browser. This
+              means:
             </p>
             <ul
-              className={`list-disc pl-5 space-y-2 mb-4 text-sm md:text-base ${
+              className={`list-disc pl-4 md:pl-5 space-y-1.5 md:space-y-2 mb-3 md:mb-4 text-sm md:text-base ${
                 darkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
               <li>
-                <strong>Export</strong>: Creates a small JSON file with all your
-                budget data that you can save anywhere
+                <strong>Clearing cache</strong> will delete your budget data
               </li>
               <li>
-                <strong>Import</strong>: Allows you to restore your data from a
-                previously exported file
+                <strong>Different devices</strong> won't share your data
+              </li>
+              <li>No automatic cloud backup is available</li>
+            </ul>
+          </div>
+
+          <div className="mb-4 md:mb-5 pb-3 md:pb-5 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-base md:text-lg font-medium mb-1.5 md:mb-2">
+              How to use Import/Export
+            </h3>
+            <ul
+              className={`list-disc pl-4 md:pl-5 space-y-1.5 md:space-y-2 mb-3 md:mb-4 text-sm md:text-base ${
+                darkMode ? "text-gray-300" : "text-gray-600"
+              }`}
+            >
+              <li>
+                <strong>Export</strong>: Save a backup file of your budget data
+              </li>
+              <li>
+                <strong>Import</strong>: Restore data from a previous backup
               </li>
             </ul>
           </div>
 
-          <div className="mb-5">
-            <h3 className="text-lg font-medium mb-2">
+          <div className="mb-4 md:mb-5">
+            <h3 className="text-base md:text-lg font-medium mb-1.5 md:mb-2">
               When to use this feature
             </h3>
             <ul
-              className={`list-disc pl-5 space-y-2 mb-4 text-sm md:text-base ${
+              className={`list-disc pl-4 md:pl-5 space-y-1.5 md:space-y-2 mb-3 md:mb-4 text-sm md:text-base ${
                 darkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              <li>Before switching to a new device or browser</li>
-              <li>Before clearing your browser cache</li>
-              <li>Periodically (monthly) as a safety measure</li>
-              <li>
-                When you want to share your budget setup with another device
-              </li>
+              <li>Before switching devices</li>
+              <li>Before clearing cache</li>
+              <li>Monthly as backup</li>
+              <li>To share between devices</li>
             </ul>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-center md:justify-end mt-2 md:mt-4">
             <button
               onClick={handleClose}
-              className={`px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
+              className={`w-full md:w-auto px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg ${
                 darkMode
                   ? "bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
                   : "bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
@@ -175,11 +160,11 @@ const ImportExportInfoModal = ({
         </div>
 
         <div
-          className={`p-3 md:p-4 text-center text-xs md:text-sm flex-shrink-0 ${
+          className={`p-2 md:p-4 text-center text-xs md:text-sm flex-shrink-0 ${
             darkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"
           }`}
         >
-          <p>This message will only appear once.</p>
+          <p>This message only appears once.</p>
         </div>
       </div>
     </div>,
