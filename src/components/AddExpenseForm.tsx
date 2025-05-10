@@ -1,22 +1,28 @@
 import { useState } from "react";
+import { CurrencyType, currencies } from "../utils/utils";
 
 interface AddExpenseFormProps {
   darkMode: boolean;
   onAddExpense: (description: string, amount: number) => void;
   onCancel: () => void;
+  currency: CurrencyType;
 }
 
 const AddExpenseForm = ({
   darkMode,
   onAddExpense,
   onCancel,
+  currency,
 }: AddExpenseFormProps) => {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
 
+  // Get currency symbol based on the current currency
+  const currencySymbol = currencies[currency].symbol;
+
   const handleSubmit = () => {
     if (description.trim() === "" || isNaN(parseFloat(amount))) return;
-    
+
     onAddExpense(description, parseFloat(amount));
     setDescription("");
     setAmount("");
@@ -30,9 +36,7 @@ const AddExpenseForm = ({
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Description
-          </label>
+          <label className="block text-sm font-medium mb-1">Description</label>
           <input
             type="text"
             placeholder="e.g., Car Payment"
@@ -46,11 +50,10 @@ const AddExpenseForm = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Amount
-          </label>
+          <label className="block text-sm font-medium mb-1">Amount</label>
           <div className="relative">
-            <span className="absolute left-3 top-2">R</span>
+            {/* Use dynamic currency symbol instead of hardcoded "R" */}
+            <span className="absolute left-3 top-2">{currencySymbol}</span>
             <input
               type="number"
               placeholder="0.00"

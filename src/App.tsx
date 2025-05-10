@@ -21,6 +21,7 @@ import {
   getCategoryColor,
   loadFromLocalStorage,
   getMonths,
+  CurrencyType,
 } from "./utils/utils";
 
 // Define TypeScript interfaces
@@ -44,6 +45,7 @@ const BudgetApp = () => {
     month: initialMonth,
     items: initialItems,
     income: initialIncome,
+    currency: initialCurrencyString,
   } = loadStoredData();
 
   // State for dark mode (initialize from localStorage)
@@ -64,6 +66,12 @@ const BudgetApp = () => {
 
   // State for income (initialize from localStorage)
   const [currentIncome, setCurrentIncome] = useState<number>(initialIncome);
+
+  // Assert the type explicitly
+  const initialCurrency = initialCurrencyString as CurrencyType;
+
+  // State for currency (initialize from localStorage)
+  const [currency, setCurrency] = useState<CurrencyType>(initialCurrency);
 
   // Get all months
   const months = getMonths();
@@ -107,6 +115,13 @@ const BudgetApp = () => {
       setDarkMode(JSON.parse(savedDarkMode));
     }
 
+    // Add this: Load currency preference
+    const savedCurrency = localStorage.getItem("budgetAppCurrency");
+    if (savedCurrency) {
+      console.log("Setting currency to:", savedCurrency);
+      setCurrency(savedCurrency as CurrencyType);
+    }
+
     // Check and show import/export modal for first-time users who imported
     const hasSeenModal = localStorage.getItem("budgetAppImportExportInfoSeen");
     if (hasSeenModal !== "true") {
@@ -120,6 +135,12 @@ const BudgetApp = () => {
       setCurrentIncome(income);
     }
     setShowIncomeEditor(false);
+  };
+
+  // Handle currency changes
+  const handleCurrencyChange = (newCurrency: CurrencyType) => {
+    setCurrency(newCurrency);
+    localStorage.setItem("budgetAppCurrency", newCurrency);
   };
 
   // Save to localStorage when states change
@@ -360,6 +381,8 @@ const BudgetApp = () => {
           setCurrentMonth={handleMonthChange}
           darkMode={darkMode}
           onCopyClick={() => setShowCopyDialog(true)}
+          currency={currency}
+          onCurrencyChange={handleCurrencyChange}
         />
 
         {/* Copy Month Dialog */}
@@ -378,7 +401,7 @@ const BudgetApp = () => {
           currentIncome={currentIncome}
           remainingBudget={remainingBudget}
           darkMode={darkMode}
-          formatCurrency={formatCurrency}
+          formatCurrency={(amount) => formatCurrency(amount, currency)}
           onEditIncome={() => setShowIncomeEditor(true)}
         />
 
@@ -404,6 +427,7 @@ const BudgetApp = () => {
               darkMode={darkMode}
               onAddExpense={addBudgetItem}
               onCancel={() => setShowAddForm(false)}
+              currency={currency}
             />
           )}
 
@@ -414,9 +438,10 @@ const BudgetApp = () => {
             onToggleChecked={toggleChecked}
             onEditItem={editBudgetItem}
             onDeleteItem={deleteBudgetItem}
-            formatCurrency={formatCurrency}
+            formatCurrency={(amount) => formatCurrency(amount, currency)}
             getCategoryColor={getCategoryColor}
             onAddFirstExpense={() => setShowAddForm(true)}
+            currency={currency}
           />
         </div>
 

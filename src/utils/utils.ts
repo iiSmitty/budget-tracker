@@ -1,6 +1,24 @@
-// Format currency (R)
-export const formatCurrency = (amount: number): string => {
-  return `R${amount.toFixed(2)}`;
+// Currency configuration
+export type CurrencyType = "ZAR" | "EUR";
+
+export interface CurrencyConfig {
+  code: CurrencyType;
+  symbol: string;
+  name: string;
+}
+
+export const currencies: Record<CurrencyType, CurrencyConfig> = {
+  ZAR: { code: "ZAR", symbol: "R", name: "South African Rand" },
+  EUR: { code: "EUR", symbol: "€", name: "Euro" },
+};
+
+// Format currency with support for multiple currencies
+export const formatCurrency = (
+  amount: number,
+  currencyCode: CurrencyType = "ZAR"
+): string => {
+  const currency = currencies[currencyCode];
+  return `${currency.symbol}${amount.toFixed(2)}`;
 };
 
 // Helper function to determine category color
@@ -41,12 +59,17 @@ export const loadFromLocalStorage = () => {
     const savedIncome = localStorage.getItem(monthIncomeKey);
     const initialIncome = savedIncome ? JSON.parse(savedIncome) : 0;
 
+    // Load currency preference
+    const savedCurrency = localStorage.getItem("budgetAppCurrency");
+    const initialCurrency = (savedCurrency as CurrencyType) || "ZAR";
+
     return {
       isFirstVisit: initialFirstVisit,
       darkMode: initialDarkMode,
       month: initialMonth,
       items: initialItems,
       income: initialIncome,
+      currency: initialCurrency,
     };
   } catch (error) {
     console.error("Error loading from localStorage:", error);
@@ -57,6 +80,7 @@ export const loadFromLocalStorage = () => {
       month: new Date().toLocaleString("default", { month: "long" }),
       items: [],
       income: 0,
+      currency: "ZAR",
     };
   }
 };
@@ -74,5 +98,5 @@ export const getMonths = (): string[] => [
   "September",
   "October",
   "November",
-  "December"
+  "December",
 ];

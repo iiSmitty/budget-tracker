@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import DropdownMenu from "./DropdownMenu";
+import { CurrencyType, currencies } from "../utils/utils";
 
 // Define the BudgetItem interface
 export interface BudgetItemType {
@@ -18,6 +19,7 @@ interface BudgetItemProps {
   onDelete: (id: string) => void;
   formatCurrency: (amount: number) => string;
   getCategoryColor: (amount: number, darkMode: boolean) => string;
+  currency: CurrencyType;
 }
 
 const BudgetItem = ({
@@ -28,6 +30,7 @@ const BudgetItem = ({
   onDelete,
   formatCurrency,
   getCategoryColor,
+  currency,
 }: BudgetItemProps) => {
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -137,7 +140,9 @@ const BudgetItem = ({
         </div>
         <div className="col-span-3 md:col-span-3">
           <div className="relative">
-            <span className="absolute left-3 top-2">R</span>
+            <span className="absolute left-3 top-2">
+              {currencies[currency].symbol}
+            </span>
             <input
               type="number"
               value={editAmount}

@@ -1,4 +1,5 @@
 import BudgetItem, { BudgetItemType } from "./BudgetItem";
+import { CurrencyType } from "../utils/utils";
 
 interface BudgetItemListProps {
   items: BudgetItemType[];
@@ -9,6 +10,7 @@ interface BudgetItemListProps {
   formatCurrency: (amount: number) => string;
   getCategoryColor: (amount: number, darkMode: boolean) => string;
   onAddFirstExpense: () => void;
+  currency: CurrencyType;
 }
 
 const BudgetItemList = ({
@@ -20,10 +22,11 @@ const BudgetItemList = ({
   formatCurrency,
   getCategoryColor,
   onAddFirstExpense,
+  currency,
 }: BudgetItemListProps) => {
   // Sort budget items from biggest to smallest
   const sortedItems = [...items].sort((a, b) => b.amount - a.amount);
-  
+
   return (
     <div
       className={`rounded-xl overflow-hidden ${
@@ -53,6 +56,7 @@ const BudgetItemList = ({
             onDelete={onDeleteItem}
             formatCurrency={formatCurrency}
             getCategoryColor={getCategoryColor}
+            currency={currency}
           />
         </div>
       ))}
