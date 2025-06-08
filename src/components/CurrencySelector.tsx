@@ -1,57 +1,45 @@
 import React from "react";
-import { CurrencyType, currencies } from "../utils/utils";
-
-// Import SVG files
-import flagZAR from "../assets/icons/flag-za.svg";
-import flagEUR from "../assets/icons/flag-uk.png";
-
-// Flag icons mapping
-const flagIcons: Record<CurrencyType, string> = {
-  ZAR: flagZAR,
-  EUR: flagEUR,
-};
+import { CurrencyType, currencies, getNextCurrency } from "../utils/utils";
 
 interface CurrencySwitcherProps {
-  currentCurrency: CurrencyType;
-  onChange: (currency: CurrencyType) => void;
-  darkMode?: boolean;
+    currentCurrency: CurrencyType;
+    onChange: (currency: CurrencyType) => void;
+    darkMode?: boolean;
 }
 
 const CurrencyIconSwitcher: React.FC<CurrencySwitcherProps> = ({
-  currentCurrency,
-  onChange,
-  darkMode = false,
-}) => {
-  const toggleCurrency = () => {
-    const newCurrency = currentCurrency === "ZAR" ? "EUR" : "ZAR";
-    onChange(newCurrency);
-  };
+                                                                   currentCurrency,
+                                                                   onChange,
+                                                                   darkMode = false,
+                                                               }) => {
+    const cycleCurrency = () => {
+        const nextCurrency = getNextCurrency(currentCurrency);
+        onChange(nextCurrency);
+    };
 
-  return (
-    <button
-      onClick={toggleCurrency}
-      className={`flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-full ${
-        darkMode
-          ? "bg-indigo-700/50 hover:bg-indigo-600/60 active:bg-indigo-500/70"
-          : "bg-white/20 hover:bg-white/30 active:bg-white/40"
-      } focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition-all duration-200`}
-      title={`Switch to ${
-        currentCurrency === "ZAR" ? "Euro" : "South African Rand"
-      }`}
-      aria-label={`Change currency from ${
-        currencies[currentCurrency].name
-      } to ${currencies[currentCurrency === "ZAR" ? "EUR" : "ZAR"].name}`}
-    >
-      <img
-        src={flagIcons[currentCurrency]}
-        alt=""
-        className="w-6 h-4 object-contain"
-        style={{
-          imageRendering: currentCurrency === "EUR" ? "crisp-edges" : "auto",
-        }}
-      />
-    </button>
-  );
+    const getNextCurrencyName = () => {
+        const nextCurrency = getNextCurrency(currentCurrency);
+        return currencies[nextCurrency].name;
+    };
+
+    return (
+        <button
+            onClick={cycleCurrency}
+            className={`flex items-center justify-center min-w-[50px] min-h-[40px] px-2 py-2 rounded-full ${
+                darkMode
+                    ? "bg-indigo-700/50 hover:bg-indigo-600/60 active:bg-indigo-500/70"
+                    : "bg-white/20 hover:bg-white/30 active:bg-white/40"
+            } focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition-all duration-200`}
+            title={`Current: ${currencies[currentCurrency].name}. Click to switch to ${getNextCurrencyName()}`}
+            aria-label={`Change currency from ${currencies[currentCurrency].name} to ${getNextCurrencyName()}`}
+        >
+      <span className={`text-xs font-bold tracking-wider ${
+          darkMode ? "text-white" : "text-gray-800"
+      }`}>
+        {currencies[currentCurrency].displayCode}
+      </span>
+        </button>
+    );
 };
 
 export default CurrencyIconSwitcher;

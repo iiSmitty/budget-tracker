@@ -1,21 +1,48 @@
 // Currency configuration
-export type CurrencyType = "ZAR" | "EUR";
+export type CurrencyType = "ZAR" | "EUR" | "NZD";
 
 export interface CurrencyConfig {
   code: CurrencyType;
   symbol: string;
   name: string;
+  displayCode: string;
 }
 
 export const currencies: Record<CurrencyType, CurrencyConfig> = {
-  ZAR: { code: "ZAR", symbol: "R", name: "South African Rand" },
-  EUR: { code: "EUR", symbol: "€", name: "Euro" },
+  ZAR: {
+    code: "ZAR",
+    symbol: "R",
+    name: "South African Rand",
+    displayCode: "ZAR"
+  },
+  EUR: {
+    code: "EUR",
+    symbol: "€",
+    name: "Euro",
+    displayCode: "EUR"
+  },
+  NZD: {
+    code: "NZD",
+    symbol: "$",
+    name: "New Zealand Dollar",
+    displayCode: "NZD"
+  },
+};
+
+// Currency cycle order for the button
+export const currencyOrder: CurrencyType[] = ["ZAR", "EUR", "NZD"];
+
+// Get next currency in the cycle
+export const getNextCurrency = (currentCurrency: CurrencyType): CurrencyType => {
+  const currentIndex = currencyOrder.indexOf(currentCurrency);
+  const nextIndex = (currentIndex + 1) % currencyOrder.length;
+  return currencyOrder[nextIndex];
 };
 
 // Format currency with support for multiple currencies
 export const formatCurrency = (
-  amount: number,
-  currencyCode: CurrencyType = "ZAR"
+    amount: number,
+    currencyCode: CurrencyType = "ZAR"
 ): string => {
   const currency = currencies[currencyCode];
   return `${currency.symbol}${amount.toFixed(2)}`;
@@ -35,7 +62,7 @@ export const loadFromLocalStorage = () => {
   try {
     // Check if this is the first visit
     const visitedBefore = localStorage.getItem("budgetAppVisited");
-    const initialFirstVisit = visitedBefore ? false : true;
+    const initialFirstVisit = !visitedBefore;
 
     // Load dark mode preference
     const savedDarkMode = localStorage.getItem("budgetAppDarkMode");
@@ -80,7 +107,7 @@ export const loadFromLocalStorage = () => {
       month: new Date().toLocaleString("default", { month: "long" }),
       items: [],
       income: 0,
-      currency: "ZAR",
+      currency: "ZAR" as CurrencyType,
     };
   }
 };
