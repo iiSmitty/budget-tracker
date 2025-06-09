@@ -90,6 +90,11 @@ export const loadFromLocalStorage = () => {
     const savedCurrency = localStorage.getItem("budgetAppCurrency");
     const initialCurrency = (savedCurrency as CurrencyType) || "ZAR";
 
+    // ADD THIS: Load groups for the current month
+    const monthGroupsKey = `budgetAppGroups-${initialMonth}`;
+    const savedGroups = localStorage.getItem(monthGroupsKey);
+    const initialGroups = savedGroups ? JSON.parse(savedGroups) : [];
+
     return {
       isFirstVisit: initialFirstVisit,
       darkMode: initialDarkMode,
@@ -97,10 +102,11 @@ export const loadFromLocalStorage = () => {
       items: initialItems,
       income: initialIncome,
       currency: initialCurrency,
+      groups: initialGroups, // ADD THIS LINE
     };
   } catch (error) {
     console.error("Error loading from localStorage:", error);
-    // Return defaults if there was an error, but with empty items array
+    // Return defaults if there was an error
     return {
       isFirstVisit: true,
       darkMode: true,
@@ -108,6 +114,7 @@ export const loadFromLocalStorage = () => {
       items: [],
       income: 0,
       currency: "ZAR" as CurrencyType,
+      groups: [],
     };
   }
 };

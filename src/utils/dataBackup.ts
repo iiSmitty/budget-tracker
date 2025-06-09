@@ -1,17 +1,11 @@
 import { getMonths, CurrencyType } from "./utils";
+import { BudgetItemType, ExpenseGroup } from "../types/budget";
 
-// Define TypeScript interfaces
-interface BudgetItem {
-  id: string;
-  description: string;
-  amount: number;
-  checked: boolean;
-  category?: string;
-}
-
+// Updated interfaces to support groups
 interface MonthData {
-  items: BudgetItem[];
+  items: BudgetItemType[];
   income: number;
+  groups: ExpenseGroup[]; // Add groups support
 }
 
 interface ExportData {
@@ -24,16 +18,14 @@ interface ExportData {
   };
 }
 
-// Export data to JSON file
+// Export data to JSON file with groups support
 export const exportBudgetData = () => {
   // Collect all budget data from localStorage
   const exportData: ExportData = {
     darkMode: JSON.parse(localStorage.getItem("budgetAppDarkMode") || "false"),
     currentMonth: localStorage.getItem("budgetAppCurrentMonth"),
     visited: localStorage.getItem("budgetAppVisited") === "true",
-    // Add the currency - use ZAR as default if not found
-    currency: (localStorage.getItem("budgetAppCurrency") ||
-      "ZAR") as CurrencyType,
+    currency: (localStorage.getItem("budgetAppCurrency") || "ZAR") as CurrencyType,
     months: {},
   };
 
@@ -41,17 +33,20 @@ export const exportBudgetData = () => {
   const allMonths = getMonths();
 
   allMonths.forEach((month) => {
-    // Get budget items for this month
+    // Get budget items, income, and groups for this month
     const itemsKey = `budgetAppItems-${month}`;
     const incomeKey = `budgetAppIncome-${month}`;
+    const groupsKey = `budgetAppGroups-${month}`; // Add groups
 
     const items = localStorage.getItem(itemsKey);
     const income = localStorage.getItem(incomeKey);
+    const groups = localStorage.getItem(groupsKey); // Add groups
 
-    if (items || income) {
+    if (items || income || groups) {
       exportData.months[month] = {
         items: items ? JSON.parse(items) : [],
         income: income ? JSON.parse(income) : 0,
+        groups: groups ? JSON.parse(groups) : [], // Add groups
       };
     }
   });
@@ -65,7 +60,7 @@ export const exportBudgetData = () => {
   const link = document.createElement("a");
 
   // Create a filename with the current date
-  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  const date = new Date().toISOString().split("T")[0];
   const filename = `budget-tracker-backup-${date}.json`;
 
   link.href = url;
@@ -76,7 +71,7 @@ export const exportBudgetData = () => {
   URL.revokeObjectURL(url);
 };
 
-// Import data from JSON file
+// Import data from JSON file with groups support
 export const importBudgetData = (file: File): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -87,63 +82,47 @@ export const importBudgetData = (file: File): Promise<boolean> => {
           throw new Error("Failed to read file");
         }
 
-        const importData = JSON.parse(
-          event.target.result as string
-        ) as ExportData;
+        const importData = JSON.parse(event.target.result as string) as ExportData;
 
         // Validate the data structure
         if (!importData.months || typeof importData.months !== "object") {
           throw new Error("Invalid backup file format");
         }
 
-        // Save dark mode setting
+        // Save preferences
         if (importData.darkMode !== undefined) {
-          localStorage.setItem(
-            "budgetAppDarkMode",
-            JSON.stringify(importData.darkMode)
-          );
+          localStorage.setItem("budgetAppDarkMode", JSON.stringify(importData.darkMode));
         }
 
-        // Save current month
         if (importData.currentMonth) {
-          localStorage.setItem(
-            "budgetAppCurrentMonth",
-            importData.currentMonth
-          );
+          localStorage.setItem("budgetAppCurrentMonth", importData.currentMonth);
         }
 
-        // Save visited status
         if (importData.visited !== undefined) {
-          localStorage.setItem(
-            "budgetAppVisited",
-            importData.visited ? "true" : "false"
-          );
+          localStorage.setItem("budgetAppVisited", importData.visited ? "true" : "false");
         }
 
-        // Save currency preference (new)
         if (importData.currency) {
           localStorage.setItem("budgetAppCurrency", importData.currency);
         } else {
-          // If the imported data doesn't have currency (older backups), set default
           localStorage.setItem("budgetAppCurrency", "ZAR");
         }
 
-        // Save all months data
+        // Save all months data including groups
         Object.keys(importData.months).forEach((month) => {
           const monthData = importData.months[month];
 
           if (monthData.items) {
-            localStorage.setItem(
-              `budgetAppItems-${month}`,
-              JSON.stringify(monthData.items)
-            );
+            localStorage.setItem(`budgetAppItems-${month}`, JSON.stringify(monthData.items));
           }
 
           if (monthData.income !== undefined) {
-            localStorage.setItem(
-              `budgetAppIncome-${month}`,
-              JSON.stringify(monthData.income)
-            );
+            localStorage.setItem(`budgetAppIncome-${month}`, JSON.stringify(monthData.income));
+          }
+
+          // Import groups if they exist (backward compatibility)
+          if (monthData.groups) {
+            localStorage.setItem(`budgetAppGroups-${month}`, JSON.stringify(monthData.groups));
           }
         });
 

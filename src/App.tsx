@@ -14,6 +14,8 @@ import ProgressBar from "./components/ProgressBar";
 import AnimatedFooter from "./components/AnimatedFooter";
 import DataBackup from "./components/DataBackup";
 import ImportExportInfoModal from "./components/ImportExportInfoModal";
+import ExpenseGroupManager from "./components/ExpenseGroupManager";
+import { BudgetItemType, ExpenseGroup } from "./types/budget";
 
 // Import utilities
 import {
@@ -24,14 +26,16 @@ import {
   CurrencyType,
 } from "./utils/utils";
 
-// Define TypeScript interfaces
-interface BudgetItem {
-  id: string;
-  description: string;
-  amount: number;
-  checked: boolean;
-  category?: string;
-}
+import {
+  loadGroupsFromStorage,
+  saveGroupsToStorage,
+  createExpenseGroup,
+  updateGroupCollapse,
+  deleteExpenseGroup,
+  editExpenseGroup,
+  removeGroupFromItems,
+  migrateToGroupedData,
+} from "./utils/groupUtils";
 
 const BudgetApp = () => {
   // Initialize state with data from localStorage
@@ -46,6 +50,7 @@ const BudgetApp = () => {
     items: initialItems,
     income: initialIncome,
     currency: initialCurrencyString,
+    groups: initialGroups,
   } = loadStoredData();
 
   // State for dark mode (initialize from localStorage)
@@ -58,11 +63,14 @@ const BudgetApp = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportExportModal, setShowImportExportModal] = useState(false);
 
+  const [expenseGroups, setExpenseGroups] = useState<ExpenseGroup[]>(initialGroups);
+  const [showGroupManager, setShowGroupManager] = useState(false);
+
   // State for current month (initialize from localStorage)
   const [currentMonth, setCurrentMonth] = useState(initialMonth);
 
   // State for budget items (initialize from localStorage)
-  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>(initialItems);
+  const [budgetItems, setBudgetItems] = useState<BudgetItemType[]>(initialItems);
 
   // State for income (initialize from localStorage)
   const [currentIncome, setCurrentIncome] = useState<number>(initialIncome);
@@ -115,12 +123,16 @@ const BudgetApp = () => {
       setDarkMode(JSON.parse(savedDarkMode));
     }
 
-    // Add this: Load currency preference
+    // Load currency preference
     const savedCurrency = localStorage.getItem("budgetAppCurrency");
     if (savedCurrency) {
       console.log("Setting currency to:", savedCurrency);
       setCurrency(savedCurrency as CurrencyType);
     }
+
+    // Load groups preference
+    const groups = loadGroupsFromStorage(monthToUse);
+    setExpenseGroups(groups);
 
     // Check and show import/export modal for first-time users who imported
     const hasSeenModal = localStorage.getItem("budgetAppImportExportInfoSeen");
@@ -178,6 +190,25 @@ const BudgetApp = () => {
     };
   }, [darkMode]);
 
+  // Load groups when month changes
+  useEffect(() => {
+    // Only run migration, don't reload groups since they're already loaded from initialization
+    migrateToGroupedData(currentMonth);
+  }, [currentMonth]);
+
+// Save groups when they change
+  useEffect(() => {
+    saveGroupsToStorage(currentMonth, expenseGroups);
+  }, [expenseGroups, currentMonth]);
+
+  useEffect(() => {
+    console.log("Loading groups for month:", currentMonth);
+    const groups = loadGroupsFromStorage(currentMonth);
+    console.log("Loaded groups:", groups);
+    setExpenseGroups(groups);
+    migrateToGroupedData(currentMonth);
+  }, [currentMonth]);
+
   // Handle welcome modal close
   const handleWelcomeClose = (income: number) => {
     setCurrentIncome(income);
@@ -203,6 +234,9 @@ const BudgetApp = () => {
     const currentIncomeKey = `budgetAppIncome-${currentMonth}`;
     localStorage.setItem(currentIncomeKey, JSON.stringify(currentIncome));
 
+    // Save current month's groups
+    saveGroupsToStorage(currentMonth, expenseGroups);
+
     // Then update the current month
     setCurrentMonth(newMonth);
 
@@ -213,7 +247,6 @@ const BudgetApp = () => {
     if (savedItems) {
       setBudgetItems(JSON.parse(savedItems));
     } else {
-      // If no items exist for the new month yet, initialize with empty array
       setBudgetItems([]);
     }
 
@@ -224,50 +257,104 @@ const BudgetApp = () => {
     if (savedIncome) {
       setCurrentIncome(JSON.parse(savedIncome));
     } else {
-      // If no income exists for the new month, use current month's income as default
       setCurrentIncome(currentIncome);
       localStorage.setItem(newIncomeKey, JSON.stringify(currentIncome));
     }
+
+    // Load groups for the new month
+    const newMonthGroups = loadGroupsFromStorage(newMonth);
+    setExpenseGroups(newMonthGroups);
+    migrateToGroupedData(newMonth);
   };
 
   const copyMonthExpenses = (fromMonth: string, toMonth: string): void => {
-    // Load source month data
+    // Load source month data (items AND groups)
     const sourceMonthKey = `budgetAppItems-${fromMonth}`;
-    const savedSourceItems = localStorage.getItem(sourceMonthKey);
+    const sourceGroupsKey = `budgetAppGroups-${fromMonth}`;
 
-    if (!savedSourceItems) {
+    const savedSourceItems = localStorage.getItem(sourceMonthKey);
+    const savedSourceGroups = localStorage.getItem(sourceGroupsKey);
+
+    if (!savedSourceItems && !savedSourceGroups) {
       console.error(`No data found for month: ${fromMonth}`);
       return;
     }
 
-    // Parse source items
-    const sourceItems = JSON.parse(savedSourceItems) as BudgetItem[];
+    // Parse source data
+    const sourceItems = savedSourceItems ? JSON.parse(savedSourceItems) as BudgetItemType[] : [];
+    const sourceGroups = savedSourceGroups ? JSON.parse(savedSourceGroups) as ExpenseGroup[] : [];
 
     // Load target month data
     const targetMonthKey = `budgetAppItems-${toMonth}`;
-    let targetItems: BudgetItem[] = [];
+    const targetGroupsKey = `budgetAppGroups-${toMonth}`;
+
+    let targetItems: BudgetItemType[] = [];
+    let targetGroups: ExpenseGroup[] = [];
 
     const savedTargetItems = localStorage.getItem(targetMonthKey);
+    const savedTargetGroups = localStorage.getItem(targetGroupsKey);
+
     if (savedTargetItems) {
-      targetItems = JSON.parse(savedTargetItems) as BudgetItem[];
+      targetItems = JSON.parse(savedTargetItems) as BudgetItemType[];
     }
 
-    // Create new IDs for the copied items to avoid conflicts
-    const copiedItems = sourceItems.map((item) => ({
-      ...item,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      checked: false, // Reset the checked state for the new month
-    }));
+    if (savedTargetGroups) {
+      targetGroups = JSON.parse(savedTargetGroups) as ExpenseGroup[];
+    }
 
-    // Combine existing items with copied items
+    // Create a mapping of old group IDs to new group IDs
+    const groupIdMapping: Record<string, string> = {};
+
+    // Copy groups and create new IDs to avoid conflicts
+    const copiedGroups = sourceGroups.map((group) => {
+      // Check if a group with the same name already exists in target month
+      const existingGroup = targetGroups.find(tg => tg.name === group.name);
+
+      if (existingGroup) {
+        // Use existing group instead of creating duplicate
+        groupIdMapping[group.id] = existingGroup.id;
+        return null; // Don't add duplicate
+      } else {
+        // Create new group with new ID
+        const newGroupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        groupIdMapping[group.id] = newGroupId;
+
+        return {
+          ...group,
+          id: newGroupId,
+          isCollapsed: false, // Reset collapse state for new month
+        };
+      }
+    }).filter(Boolean) as ExpenseGroup[]; // Remove null values
+
+    // Create new IDs for the copied items and update group references
+    const copiedItems = sourceItems.map((item) => {
+      const newItem: BudgetItemType = {
+        ...item,
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        checked: false, // Reset the checked state for the new month
+      };
+
+      // Update group reference if item belongs to a group
+      if (item.group && groupIdMapping[item.group]) {
+        newItem.group = groupIdMapping[item.group];
+      }
+
+      return newItem;
+    });
+
+    // Combine existing data with copied data
     const updatedItems = [...targetItems, ...copiedItems];
+    const updatedGroups = [...targetGroups, ...copiedGroups];
 
     // Save to target month
     localStorage.setItem(targetMonthKey, JSON.stringify(updatedItems));
+    localStorage.setItem(targetGroupsKey, JSON.stringify(updatedGroups));
 
     // If the current month is the target month, update the state
     if (currentMonth === toMonth) {
       setBudgetItems(updatedItems);
+      setExpenseGroups(updatedGroups);
     }
   };
 
@@ -277,12 +364,13 @@ const BudgetApp = () => {
   };
 
   // Add new budget item
-  const addBudgetItem = (description: string, amount: number) => {
-    const newItem: BudgetItem = {
+  const addBudgetItem = (description: string, amount: number, group?: string) => {
+    const newItem: BudgetItemType = {
       id: Date.now().toString(),
       description,
       amount,
       checked: false,
+      group,
     };
 
     setBudgetItems([...budgetItems, newItem]);
@@ -295,17 +383,14 @@ const BudgetApp = () => {
   };
 
   // Edit budget item
-  const editBudgetItem = (id: string, description: string, amount: number) => {
+  const editBudgetItem = (id: string, description: string, amount: number, group?: string) => {
+    console.log("Editing item:", id, "new group:", group); // Add this line
     setBudgetItems(
-      budgetItems.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              description,
-              amount,
-            }
-          : item
-      )
+        budgetItems.map((item) =>
+            item.id === id
+                ? { ...item, description, amount, group }
+                : item
+        )
     );
   };
 
@@ -332,6 +417,56 @@ const BudgetApp = () => {
     if (totalBudget > currentIncome) return "bg-red-500";
     if (totalBudget > currentIncome * 0.9) return "bg-yellow-500";
     return "bg-green-500";
+  };
+
+  const handleCreateGroup = (groupName: string) => {
+    const newGroup = createExpenseGroup(groupName);
+    setExpenseGroups([...expenseGroups, newGroup]);
+  };
+
+  const handleDeleteGroup = (groupId: string) => {
+    const updatedItems = removeGroupFromItems(budgetItems, groupId);
+    setBudgetItems(updatedItems);
+    const updatedGroups = deleteExpenseGroup(expenseGroups, groupId);
+    setExpenseGroups(updatedGroups);
+  };
+
+  const handleEditGroup = (groupId: string, newName: string) => {
+    const updatedGroups = editExpenseGroup(expenseGroups, groupId, newName);
+    setExpenseGroups(updatedGroups);
+  };
+
+  const handleUpdateGroupCollapse = (groupId: string, isCollapsed: boolean) => {
+    const updatedGroups = updateGroupCollapse(expenseGroups, groupId, isCollapsed);
+    setExpenseGroups(updatedGroups);
+  };
+
+  // Move multiple items to a group (for bulk move)
+  const handleMoveItems = (itemIds: string[], targetGroupId: string) => {
+    setBudgetItems(prevItems =>
+        prevItems.map(item =>
+            itemIds.includes(item.id)
+                ? { ...item, group: targetGroupId }
+                : item
+        )
+    );
+  };
+
+// Move all ungrouped items to a group (for quick move all)
+  const handleQuickMoveAll = (items: BudgetItemType[], targetGroupId: string) => {
+    const itemIds = items.map(item => item.id);
+    handleMoveItems(itemIds, targetGroupId);
+  };
+
+// Move a single item to a group (for individual dropdown move)
+  const handleMoveToGroup = (itemId: string, groupId: string) => {
+    setBudgetItems(prevItems =>
+        prevItems.map(item =>
+            item.id === itemId
+                ? { ...item, group: groupId }
+                : item
+        )
+    );
   };
 
   return (
@@ -409,39 +544,73 @@ const BudgetApp = () => {
         <div className="p-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Expenses</h2>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className={`px-4 py-2 rounded-full text-sm font-medium ${
-                darkMode
-                  ? "bg-indigo-700 hover:bg-indigo-600 text-white"
-                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
-              }`}
-            >
-              {showAddForm ? "Cancel" : "+ Add Expense"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                  onClick={() => setShowGroupManager(true)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+                      darkMode
+                          ? "bg-purple-700 hover:bg-purple-600 text-white"
+                          : "bg-purple-600 hover:bg-purple-700 text-white"
+                  }`}
+              >
+                <span>📁</span>
+                Groups
+              </button>
+
+              <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+                      darkMode
+                          ? "bg-indigo-700 hover:bg-indigo-600 text-white"
+                          : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  }`}
+              >
+                <span>{showAddForm ? "✕" : "+"}</span>
+                {showAddForm ? "Cancel" : "Add Expense"}
+              </button>
+            </div>
           </div>
+
+          {/* Group Manager Modal */}
+          <ExpenseGroupManager
+              isOpen={showGroupManager}
+              onClose={() => setShowGroupManager(false)}
+              groups={expenseGroups}
+              onCreateGroup={handleCreateGroup}
+              onDeleteGroup={handleDeleteGroup}
+              onEditGroup={handleEditGroup}
+              darkMode={darkMode}
+          />
 
           {/* Add new item form */}
           {showAddForm && (
-            <AddExpenseForm
-              darkMode={darkMode}
-              onAddExpense={addBudgetItem}
-              onCancel={() => setShowAddForm(false)}
-              currency={currency}
-            />
+              <div className="mb-4">
+                <AddExpenseForm
+                    darkMode={darkMode}
+                    onAddExpense={addBudgetItem}
+                    onCancel={() => setShowAddForm(false)}
+                    currency={currency}
+                    groups={expenseGroups}
+                />
+              </div>
           )}
 
           {/* Budget items list */}
           <BudgetItemList
-            items={budgetItems}
-            darkMode={darkMode}
-            onToggleChecked={toggleChecked}
-            onEditItem={editBudgetItem}
-            onDeleteItem={deleteBudgetItem}
-            formatCurrency={(amount) => formatCurrency(amount, currency)}
-            getCategoryColor={getCategoryColor}
-            onAddFirstExpense={() => setShowAddForm(true)}
-            currency={currency}
+              items={budgetItems}
+              groups={expenseGroups}
+              darkMode={darkMode}
+              onToggleChecked={toggleChecked}
+              onEditItem={editBudgetItem}
+              onDeleteItem={deleteBudgetItem}
+              formatCurrency={(amount) => formatCurrency(amount, currency)}
+              getCategoryColor={getCategoryColor}
+              onAddFirstExpense={() => setShowAddForm(true)}
+              currency={currency}
+              onUpdateGroupCollapse={handleUpdateGroupCollapse}
+              onMoveItems={handleMoveItems}
+              onQuickMoveAll={handleQuickMoveAll}
+              onMoveToGroup={handleMoveToGroup}
           />
         </div>
 
