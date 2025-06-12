@@ -364,13 +364,14 @@ const BudgetApp = () => {
   };
 
   // Add new budget item
-  const addBudgetItem = (description: string, amount: number, group?: string) => {
+  const addBudgetItem = (description: string, amount: number, group?: string, isIncome?: boolean) => {
     const newItem: BudgetItemType = {
       id: Date.now().toString(),
       description,
       amount,
       checked: false,
       group,
+      isIncome: isIncome || false,
     };
 
     setBudgetItems([...budgetItems, newItem]);
@@ -383,12 +384,12 @@ const BudgetApp = () => {
   };
 
   // Edit budget item
-  const editBudgetItem = (id: string, description: string, amount: number, group?: string) => {
-    console.log("Editing item:", id, "new group:", group); // Add this line
+  const editBudgetItem = (id: string, description: string, amount: number, group?: string, isIncome?: boolean) => {
+    console.log("Editing item:", id, "new group:", group, "isIncome:", isIncome);
     setBudgetItems(
         budgetItems.map((item) =>
             item.id === id
-                ? { ...item, description, amount, group }
+                ? { ...item, description, amount, group, isIncome: isIncome || false }
                 : item
         )
     );
@@ -403,19 +404,28 @@ const BudgetApp = () => {
     );
   };
 
-  // Calculate total budget and used budget
-  const totalBudget = budgetItems.reduce((sum, item) => sum + item.amount, 0);
-  const usedBudget = budgetItems
-    .filter((item) => item.checked)
-    .reduce((sum, item) => sum + item.amount, 0);
+  // Calculate expenses and additional income separately
+  const expenses = budgetItems.filter(item => !item.isIncome);
+  const additionalIncomeItems = budgetItems.filter(item => item.isIncome);
 
-  // Calculate remaining budget
-  const remainingBudget = currentIncome - totalBudget;
+  // Calculate total budget and used budget
+  const totalBudget = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const additionalIncome = additionalIncomeItems.reduce((sum, item) => sum + item.amount, 0);
+
+  const usedBudget = expenses
+      .filter((item) => item.checked)
+      .reduce((sum, item) => sum + item.amount, 0);
+
+  // Calculate total income and remaining budget
+  const totalIncome = currentIncome + additionalIncome;
+  const remainingBudget = totalIncome - totalBudget;
 
   // Get appropriate color for budget usage
   const getBudgetUsageColor = () => {
-    if (totalBudget > currentIncome) return "bg-red-500";
-    if (totalBudget > currentIncome * 0.9) return "bg-yellow-500";
+    const usagePercentage = (totalBudget / totalIncome) * 100;
+
+    if (usagePercentage >= 100) return "bg-red-500";
+    if (usagePercentage >= 95) return "bg-yellow-500";
     return "bg-green-500";
   };
 
@@ -439,23 +449,6 @@ const BudgetApp = () => {
   const handleUpdateGroupCollapse = (groupId: string, isCollapsed: boolean) => {
     const updatedGroups = updateGroupCollapse(expenseGroups, groupId, isCollapsed);
     setExpenseGroups(updatedGroups);
-  };
-
-  // Move multiple items to a group (for bulk move)
-  const handleMoveItems = (itemIds: string[], targetGroupId: string) => {
-    setBudgetItems(prevItems =>
-        prevItems.map(item =>
-            itemIds.includes(item.id)
-                ? { ...item, group: targetGroupId }
-                : item
-        )
-    );
-  };
-
-// Move all ungrouped items to a group (for quick move all)
-  const handleQuickMoveAll = (items: BudgetItemType[], targetGroupId: string) => {
-    const itemIds = items.map(item => item.id);
-    handleMoveItems(itemIds, targetGroupId);
   };
 
 // Move a single item to a group (for individual dropdown move)
@@ -532,12 +525,12 @@ const BudgetApp = () => {
 
         {/* Summary Cards */}
         <BudgetSummary
-          totalBudget={totalBudget}
-          currentIncome={currentIncome}
-          remainingBudget={remainingBudget}
-          darkMode={darkMode}
-          formatCurrency={(amount) => formatCurrency(amount, currency)}
-          onEditIncome={() => setShowIncomeEditor(true)}
+            totalBudget={totalBudget}
+            currentIncome={totalIncome} // Pass total income (base + additional)
+            remainingBudget={remainingBudget}
+            darkMode={darkMode}
+            formatCurrency={(amount) => formatCurrency(amount, currency)}
+            onEditIncome={() => setShowIncomeEditor(true)}
         />
 
         {/* Budget Items */}
@@ -566,7 +559,7 @@ const BudgetApp = () => {
                   }`}
               >
                 <span>{showAddForm ? "✕" : "+"}</span>
-                {showAddForm ? "Cancel" : "Add Expense"}
+                {showAddForm ? "Cancel" : "Add Item"}
               </button>
             </div>
           </div>
@@ -608,19 +601,17 @@ const BudgetApp = () => {
               onAddFirstExpense={() => setShowAddForm(true)}
               currency={currency}
               onUpdateGroupCollapse={handleUpdateGroupCollapse}
-              onMoveItems={handleMoveItems}
-              onQuickMoveAll={handleQuickMoveAll}
               onMoveToGroup={handleMoveToGroup}
           />
         </div>
 
         {/* Budget progress */}
         <ProgressBar
-          label="Budget Usage"
-          value={totalBudget}
-          max={currentIncome}
-          color={getBudgetUsageColor()}
-          darkMode={darkMode}
+            label="Budget Usage"
+            value={totalBudget}
+            max={totalIncome}
+            color={getBudgetUsageColor()}
+            darkMode={darkMode}
         />
 
         {/* Expenses Progress */}

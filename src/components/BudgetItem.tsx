@@ -7,7 +7,7 @@ interface BudgetItemProps {
     item: BudgetItemType;
     darkMode: boolean;
     onToggleChecked: (id: string) => void;
-    onEdit: (id: string, description: string, amount: number, group?: string) => void;
+    onEdit: (id: string, description: string, amount: number, group?: string, isIncome?: boolean) => void;
     onDelete: (id: string) => void;
     formatCurrency: (amount: number) => string;
     getCategoryColor: (amount: number, darkMode: boolean) => string;
@@ -35,6 +35,7 @@ const BudgetItem = ({
     const [editDescription, setEditDescription] = useState(item.description);
     const [editAmount, setEditAmount] = useState(item.amount.toString());
     const [editGroup, setEditGroup] = useState(item.group || "");
+    const [editIsIncome, setEditIsIncome] = useState(item.isIncome || false);
 
     // State for expanded description
     const [isExpanded, setIsExpanded] = useState(false);
@@ -91,6 +92,7 @@ const BudgetItem = ({
         setEditDescription(item.description);
         setEditAmount(item.amount.toString());
         setEditGroup(item.group || "");
+        setEditIsIncome(item.isIncome || false);
         setIsEditing(true);
         setIsDropdownOpen(false);
     };
@@ -106,7 +108,7 @@ const BudgetItem = ({
         const groupToSave = editGroup === "" ? undefined : editGroup;
         console.log("Group to save:", groupToSave);
 
-        onEdit(item.id, editDescription, parseFloat(editAmount), groupToSave);
+        onEdit(item.id, editDescription, parseFloat(editAmount), groupToSave, editIsIncome);
         setIsEditing(false);
     };
 
@@ -118,12 +120,40 @@ const BudgetItem = ({
     // Check if description is long enough to need expansion on mobile
     const isLongDescription = item.description.length > 20;
 
-    // Get the color class for the amount tag
-    const colorClass = getCategoryColor(item.amount, darkMode);
+    // Get the color class for the amount tag - updated for income items
+    const getItemColor = () => {
+        if (item.isIncome) {
+            return darkMode ? "bg-green-800 text-green-200" : "bg-green-100 text-green-800";
+        }
+        return getCategoryColor(item.amount, darkMode);
+    };
+
+    // Format amount with + for income items
+    const formatAmount = (amount: number) => {
+        const formatted = formatCurrency(amount);
+        return item.isIncome ? `+${formatted}` : formatted;
+    };
+
+// In BudgetItem.tsx, update the editing form section:
 
     if (isEditing) {
         return (
             <div className="p-4 space-y-3">
+                {/* Income Toggle in Edit Mode */}
+                <div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={editIsIncome}
+                            onChange={(e) => setEditIsIncome(e.target.checked)}
+                            className="h-4 w-4 rounded text-green-600 focus:ring-green-500"
+                        />
+                        <span className={`text-sm ${editIsIncome ? 'text-green-600' : ''}`}>
+                        {editIsIncome ? "This is income" : "This is an expense"}
+                    </span>
+                    </label>
+                </div>
+
                 {/* Description */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Description</label>
@@ -135,18 +165,20 @@ const BudgetItem = ({
                             darkMode
                                 ? "bg-gray-800 text-white border-gray-600"
                                 : "bg-white text-gray-900 border-gray-300"
-                        } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        } border focus:outline-none focus:ring-2 ${
+                            editIsIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
+                        }`}
                     />
                 </div>
 
-                {/* Amount and Group */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Amount and Group - Conditional Grid */}
+                <div className={`grid gap-3 ${editIsIncome ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                     <div>
                         <label className="block text-sm font-medium mb-1">Amount</label>
                         <div className="relative">
-              <span className="absolute left-3 top-2">
-                {currencies[currency].symbol}
-              </span>
+                        <span className="absolute left-3 top-2">
+                            {currencies[currency].symbol}
+                        </span>
                             <input
                                 type="number"
                                 value={editAmount}
@@ -155,30 +187,35 @@ const BudgetItem = ({
                                     darkMode
                                         ? "bg-gray-800 text-white border-gray-600"
                                         : "bg-white text-gray-900 border-gray-300"
-                                } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                } border focus:outline-none focus:ring-2 ${
+                                    editIsIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
+                                }`}
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Group</label>
-                        <select
-                            value={editGroup}
-                            onChange={(e) => setEditGroup(e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg ${
-                                darkMode
-                                    ? "bg-gray-800 text-white border-gray-600"
-                                    : "bg-white text-gray-900 border-gray-300"
-                            } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        >
-                            <option value="">No group</option>
-                            {groups.map((group) => (
-                                <option key={group.id} value={group.id}>
-                                    {group.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* Only show group selector for expenses */}
+                    {!editIsIncome && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Group</label>
+                            <select
+                                value={editGroup}
+                                onChange={(e) => setEditGroup(e.target.value)}
+                                className={`w-full px-3 py-2 rounded-lg ${
+                                    darkMode
+                                        ? "bg-gray-800 text-white border-gray-600"
+                                        : "bg-white text-gray-900 border-gray-300"
+                                } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            >
+                                <option value="">No group</option>
+                                {groups.map((group) => (
+                                    <option key={group.id} value={group.id}>
+                                        {group.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Action buttons */}
@@ -195,7 +232,11 @@ const BudgetItem = ({
                     </button>
                     <button
                         onClick={saveEdit}
-                        className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white"
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                            editIsIncome
+                                ? "bg-green-600 hover:bg-green-700 text-white"
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                        }`}
                     >
                         Save
                     </button>
@@ -236,8 +277,8 @@ const BudgetItem = ({
 
                 {/* Amount */}
                 <div className="col-span-3 flex justify-end pr-2">
-                    <div className={`py-1 px-2 rounded-full text-center ${colorClass}`}>
-                        {formatCurrency(item.amount)}
+                    <div className={`py-1 px-2 rounded-full text-center ${getItemColor()}`}>
+                        {formatAmount(item.amount)}
                     </div>
                 </div>
 
@@ -262,6 +303,7 @@ const BudgetItem = ({
                         onMoveToGroup={onMoveToGroup}
                         isUngrouped={isUngrouped}
                         itemId={item.id}
+                        isIncome={item.isIncome || false}
                     />
                 </div>
             </div>
@@ -280,14 +322,14 @@ const BudgetItem = ({
                 />
             </div>
             <div className="col-span-6 md:col-span-8">
-                <div className={item.checked ? "line-through" : ""}>
+                <div className={`${item.checked ? "line-through" : ""}`}>
                     {item.description}
                 </div>
             </div>
             <div
-                className={`col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center ${colorClass}`}
+                className={`col-span-3 md:col-span-2 py-1 px-2 rounded-full text-center ${getItemColor()}`}
             >
-                {formatCurrency(item.amount)}
+                {formatAmount(item.amount)}
             </div>
             <div className="col-span-2 md:col-span-1 flex justify-end">
                 <div className="dropdown relative">
@@ -310,6 +352,7 @@ const BudgetItem = ({
                         onMoveToGroup={onMoveToGroup}
                         isUngrouped={isUngrouped}
                         itemId={item.id}
+                        isIncome={item.isIncome || false}
                     />
                 </div>
             </div>

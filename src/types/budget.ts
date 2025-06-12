@@ -1,4 +1,4 @@
-// Budget item interface with group support
+// Budget item interface
 export interface BudgetItemType {
     id: string;
     description: string;
@@ -6,6 +6,7 @@ export interface BudgetItemType {
     checked: boolean;
     category?: string;
     group?: string;
+    isIncome?: boolean;
 }
 
 // Expense group interface
@@ -17,7 +18,7 @@ export interface ExpenseGroup {
     isCollapsed?: boolean;
 }
 
-// Export data interface updated for groups
+// Export data interface
 export interface ExportData {
     darkMode: boolean;
     currentMonth: string | null;
