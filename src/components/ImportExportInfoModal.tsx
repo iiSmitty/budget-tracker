@@ -1,5 +1,6 @@
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
+import { STORAGE_KEYS } from "../utils/storage";
 
 interface ImportExportInfoModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ const ImportExportInfoModal = ({
 }: ImportExportInfoModalProps) => {
   // However the modal is closed, remember that it has been seen so it only ever shows once
   const handleClose = () => {
-    localStorage.setItem("budgetAppImportExportInfoSeen", "true");
+    localStorage.setItem(STORAGE_KEYS.importExportInfoSeen, "true");
     onClose();
   };
 

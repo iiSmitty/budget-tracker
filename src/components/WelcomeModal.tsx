@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { importBudgetData } from "../utils/dataBackup"; // Import the data import function
+import { loadCurrentMonth, loadMonthIncome } from "../utils/storage";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
 import { fieldClass } from "./ui/fieldClass";
@@ -76,13 +77,7 @@ const WelcomeModal = ({
       // Close the welcome modal after a short delay to show success message
       setTimeout(() => {
         // Important: Since we've imported data, we should use the imported income
-        const currentMonth = localStorage.getItem("budgetAppCurrentMonth") ||
-          new Date().toLocaleString("default", { month: "long" });
-
-        const incomeKey = `budgetAppIncome-${currentMonth}`;
-        const savedIncome = localStorage.getItem(incomeKey);
-        const importedIncome = savedIncome ? JSON.parse(savedIncome) : 0;
-
+        const importedIncome = loadMonthIncome(loadCurrentMonth()) ?? 0;
         onClose(importedIncome); // Pass the imported income to the onClose handler
       }, 1500);
 

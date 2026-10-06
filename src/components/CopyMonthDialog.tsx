@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
 import { fieldClass } from "./ui/fieldClass";
+import MonthOptions from "./MonthOptions";
+import { MonthKey, addMonths, formatMonth } from "../utils/months";
 
 interface CopyMonthDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  months: string[];
-  currentMonth: string;
-  onCopy: (fromMonth: string, toMonth: string) => void;
+  // Months that can be picked, oldest first
+  months: MonthKey[];
+  currentMonth: MonthKey;
+  onCopy: (fromMonth: MonthKey, toMonth: MonthKey) => void;
 }
 
 type CopyMode = "copyFrom" | "copyTo";
@@ -25,11 +28,12 @@ const CopyMonthDialog = ({
   const [mode, setMode] = useState<CopyMode>("copyFrom");
   const [isConfirming, setIsConfirming] = useState(false);
 
-  // Reset state when dialog opens
+  // Reset state when the dialog opens, suggesting the usual choices: copy last month's
+  // budget into this one, or this month's into next month
   useEffect(() => {
     if (isOpen) {
-      setSourceMonth("");
-      setTargetMonth("");
+      setSourceMonth(addMonths(currentMonth, -1));
+      setTargetMonth(addMonths(currentMonth, 1));
       setMode("copyFrom");
       setIsConfirming(false);
     }
@@ -39,6 +43,10 @@ const CopyMonthDialog = ({
   const fromMonth = mode === "copyFrom" ? sourceMonth : currentMonth;
   const toMonth = mode === "copyFrom" ? currentMonth : targetMonth;
   const otherMonth = mode === "copyFrom" ? sourceMonth : targetMonth;
+
+  const fromLabel = fromMonth && formatMonth(fromMonth);
+  const toLabel = toMonth && formatMonth(toMonth);
+  const currentLabel = formatMonth(currentMonth);
 
   const handleConfirmCopy = () => {
     onCopy(fromMonth, toMonth);
@@ -62,14 +70,14 @@ const CopyMonthDialog = ({
         isOpen={isOpen}
         onClose={onClose}
         title="Confirm copy"
-        description={`This will copy all items from ${fromMonth} to ${toMonth}. Anything already in ${toMonth} stays as it is.`}
+        description={`This will copy all items from ${fromLabel} to ${toLabel}. Anything already in ${toLabel} stays as it is.`}
         footer={
           <>
             <Button variant="secondary" onClick={() => setIsConfirming(false)}>
               Back
             </Button>
             <Button variant="primary" onClick={handleConfirmCopy}>
-              Copy to {toMonth}
+              Copy to {toLabel}
             </Button>
           </>
         }
@@ -121,7 +129,7 @@ const CopyMonthDialog = ({
       <label htmlFor="copy-month-select" className="block mb-2 text-sm text-fg-muted">
         {mode === "copyFrom"
           ? "Select a month to copy expenses FROM:"
-          : `Your current month (${currentMonth}) expenses will be copied TO:`}
+          : `Your current month (${currentLabel}) expenses will be copied TO:`}
       </label>
       <select
         id="copy-month-select"
@@ -136,16 +144,12 @@ const CopyMonthDialog = ({
         <option value="">
           {mode === "copyFrom" ? "Select source month" : "Select target month"}
         </option>
-        {otherMonths.map((month) => (
-          <option key={month} value={month}>
-            {month}
-          </option>
-        ))}
+        <MonthOptions months={otherMonths} />
       </select>
 
       {mode === "copyFrom" && (
         <p className="mt-3 text-sm text-fg-muted">
-          Expenses will be copied TO your current month ({currentMonth}).
+          Expenses will be copied TO your current month ({currentLabel}).
         </p>
       )}
     </Dialog>

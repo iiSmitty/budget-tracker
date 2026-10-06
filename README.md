@@ -28,7 +28,7 @@ BudgetTracker is a lightweight, privacy-focused personal finance application bui
 
 ### Prerequisites
 
-- Node.js (v14 or newer)
+- Node.js 22.12 or newer (24 recommended; CI uses 24)
 - npm or yarn
 
 ### Installation
@@ -53,7 +53,12 @@ BudgetTracker is a lightweight, privacy-focused personal finance application bui
    yarn dev
    ```
 
-4. Build for production
+4. Run the tests
+   ```bash
+   npm test
+   ```
+
+5. Build for production
    ```bash
    npm run build
    # or

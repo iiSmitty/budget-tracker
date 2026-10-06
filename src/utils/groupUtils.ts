@@ -1,27 +1,5 @@
 import { BudgetItemType, ExpenseGroup } from "../types/budget";
 
-// Load groups from localStorage for the current month
-export const loadGroupsFromStorage = (month: string): ExpenseGroup[] => {
-    try {
-        const groupsKey = `budgetAppGroups-${month}`;
-        const savedGroups = localStorage.getItem(groupsKey);
-        return savedGroups ? JSON.parse(savedGroups) : [];
-    } catch (error) {
-        console.error("Error loading groups from localStorage:", error);
-        return [];
-    }
-};
-
-// Save groups to localStorage for the current month
-export const saveGroupsToStorage = (month: string, groups: ExpenseGroup[]): void => {
-    try {
-        const groupsKey = `budgetAppGroups-${month}`;
-        localStorage.setItem(groupsKey, JSON.stringify(groups));
-    } catch (error) {
-        console.error("Error saving groups to localStorage:", error);
-    }
-};
-
 // Create a new expense group
 export const createExpenseGroup = (name: string): ExpenseGroup => {
     return {
@@ -96,14 +74,3 @@ export const getDefaultGroups = (): ExpenseGroup[] => [
     },
 ];
 
-// Migrate existing data to include groups (for existing users)
-export const migrateToGroupedData = (month: string): void => {
-    const groupsKey = `budgetAppGroups-${month}`;
-    const existingGroups = localStorage.getItem(groupsKey);
-
-    // Only create default groups if none exist
-    if (!existingGroups) {
-        const defaultGroups = getDefaultGroups();
-        saveGroupsToStorage(month, defaultGroups);
-    }
-};

@@ -18,17 +18,23 @@ export interface ExpenseGroup {
     isCollapsed?: boolean;
 }
 
-// Export data interface
+// One month's data in a backup file
+export interface MonthBackup {
+    items: BudgetItemType[];
+    income: number;
+    groups: ExpenseGroup[];
+}
+
+// Backup file format. Version 1 files have no `version` and key months by name ("October");
+// version 2 keys them by "YYYY-MM".
 export interface ExportData {
+    version: 2;
+    exportedAt: string;
     darkMode: boolean;
     currentMonth: string | null;
     visited: boolean;
     currency: string;
     months: {
-        [month: string]: {
-            items: BudgetItemType[];
-            income: number;
-            groups: ExpenseGroup[];
-        };
+        [month: string]: MonthBackup;
     };
 }
