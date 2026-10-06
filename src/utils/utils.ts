@@ -48,6 +48,10 @@ export const formatCurrency = (
   return `${currency.symbol}${amount.toFixed(2)}`;
 };
 
+// "1 expense", "3 expenses"
+export const pluralise = (count: number, singular: string, plural = `${singular}s`): string =>
+  `${count} ${count === 1 ? singular : plural}`;
+
 // Helper function to determine category color
 export const getCategoryColor = (amount: number, darkMode: boolean): string => {
   if (amount > 5000) return darkMode ? "bg-red-900" : "bg-red-100";

@@ -15,6 +15,8 @@ import AnimatedFooter from "./components/AnimatedFooter";
 import DataBackup from "./components/DataBackup";
 import ImportExportInfoModal from "./components/ImportExportInfoModal";
 import ExpenseGroupManager from "./components/ExpenseGroupManager";
+import ClearMonthDialog from "./components/ClearMonthDialog";
+import UndoToast from "./components/UndoToast";
 import { BudgetItemType, ExpenseGroup } from "./types/budget";
 
 // Import utilities
@@ -36,6 +38,15 @@ import {
   removeGroupFromItems,
   migrateToGroupedData,
 } from "./utils/groupUtils";
+
+import {
+  ClearedMonth,
+  describeClear,
+  partitionItemsForClear,
+  restoreClearedItems,
+  loadMonthItems,
+  saveMonthItems,
+} from "./utils/clearMonth";
 
 const BudgetApp = () => {
   // Initialize state with data from localStorage
@@ -66,6 +77,10 @@ const BudgetApp = () => {
   const [expenseGroups, setExpenseGroups] = useState<ExpenseGroup[]>(initialGroups);
   const [showGroupManager, setShowGroupManager] = useState(false);
 
+  // State for clearing a month (and undoing the most recent clear)
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [lastClear, setLastClear] = useState<ClearedMonth | null>(null);
+
   // State for current month (initialize from localStorage)
   const [currentMonth, setCurrentMonth] = useState(initialMonth);
 
@@ -92,6 +107,9 @@ const BudgetApp = () => {
     const monthToUse = savedMonth || systemMonth;
 
     console.log("Loading data for month:", monthToUse);
+
+    // An import replaces data wholesale, so a pending "undo clear" no longer applies
+    setLastClear(null);
 
     // Update current month state
     setCurrentMonth(monthToUse);
@@ -404,6 +422,31 @@ const BudgetApp = () => {
     );
   };
 
+  // Clear the current month's expenses (and optionally additional income) in one go
+  const handleClearMonth = (includeIncome: boolean) => {
+    const { kept, removed } = partitionItemsForClear(budgetItems, includeIncome);
+    setShowClearDialog(false);
+    if (removed.length === 0) return;
+
+    setBudgetItems(kept);
+    setLastClear({ month: currentMonth, removedItems: removed, clearedAt: Date.now() });
+  };
+
+  // Put cleared items back, even if the user has since switched to another month
+  const handleUndoClear = () => {
+    if (!lastClear) return;
+    const { month, removedItems } = lastClear;
+
+    if (month === currentMonth) {
+      setBudgetItems((prevItems) => restoreClearedItems(prevItems, removedItems, expenseGroups));
+    } else {
+      const restored = restoreClearedItems(loadMonthItems(month), removedItems, loadGroupsFromStorage(month));
+      saveMonthItems(month, restored);
+    }
+
+    setLastClear(null);
+  };
+
   // Calculate expenses and additional income separately
   const expenses = budgetItems.filter(item => !item.isIncome);
   const additionalIncomeItems = budgetItems.filter(item => item.isIncome);
@@ -603,6 +646,34 @@ const BudgetApp = () => {
               onUpdateGroupCollapse={handleUpdateGroupCollapse}
               onMoveToGroup={handleMoveToGroup}
           />
+
+          {/* Month-level destructive action, kept quiet and away from the everyday buttons */}
+          {budgetItems.length > 0 && (
+              <div className="mt-3 flex justify-end">
+                <button
+                    onClick={() => setShowClearDialog(true)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                        darkMode
+                            ? "text-red-400 hover:bg-red-900/30"
+                            : "text-red-600 hover:bg-red-50"
+                    }`}
+                >
+                  <span aria-hidden="true">🗑️</span>
+                  Clear {currentMonth}…
+                </button>
+              </div>
+          )}
+
+          <ClearMonthDialog
+              isOpen={showClearDialog}
+              month={currentMonth}
+              items={budgetItems}
+              baseIncome={currentIncome}
+              darkMode={darkMode}
+              formatCurrency={(amount) => formatCurrency(amount, currency)}
+              onConfirm={handleClearMonth}
+              onCancel={() => setShowClearDialog(false)}
+          />
         </div>
 
         {/* Budget progress */}
@@ -631,6 +702,17 @@ const BudgetApp = () => {
         {/* Footer */}
         <AnimatedFooter darkMode={darkMode} />
       </div>
+
+      {/* Undo for the most recent month clear; keyed so a new clear restarts the countdown */}
+      {lastClear && (
+          <UndoToast
+              key={lastClear.clearedAt}
+              message={describeClear(lastClear)}
+              onUndo={handleUndoClear}
+              onDismiss={() => setLastClear(null)}
+              darkMode={darkMode}
+          />
+      )}
     </div>
   );
 };
