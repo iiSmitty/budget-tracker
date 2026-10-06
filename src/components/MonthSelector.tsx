@@ -24,8 +24,6 @@ const MonthSelector = ({ currentMonth, months, onMonthChange, onCopyClick }: Mon
 
   return (
     <nav aria-label="Month" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-      <h2 className="sr-only">{formatMonth(currentMonth)} budget</h2>
-
       {/* Step with the arrows, or jump with the month name (a native picker) */}
       <div className="flex items-center gap-1 -ml-2">
         <Button
@@ -38,22 +36,21 @@ const MonthSelector = ({ currentMonth, months, onMonthChange, onCopyClick }: Mon
           <ChevronLeft size={22} aria-hidden="true" />
         </Button>
 
-        {/* A select is as wide as its longest option. Here an invisible copy of the current
-            label sets the width and the select is laid over it, so the chevron hugs the name */}
-        <div className="relative">
-          <span
-            aria-hidden="true"
-            className="invisible block pl-2 pr-8 py-1 text-2xl sm:text-3xl font-bold tracking-tight whitespace-nowrap"
-          >
+        {/* The heading shows "October 2026"; a transparent select laid over it opens the native
+            picker. That keeps the heading's size and the year, while the picker's own options can
+            be short month names under year groups, at a normal text size */}
+        <div className="relative rounded-lg hover:bg-surface-muted transition-colors">
+          <h2 className="pl-2 pr-8 py-1 text-2xl sm:text-3xl font-bold tracking-tight whitespace-nowrap">
             {formatMonth(currentMonth)}
-          </span>
+            <span className="sr-only"> budget</span>
+          </h2>
           <select
             value={currentMonth}
             onChange={(e) => onMonthChange(e.target.value)}
             aria-label="Choose month"
-            className="absolute inset-0 w-full appearance-none bg-transparent pl-2 pr-8 py-1 rounded-lg text-2xl sm:text-3xl font-bold tracking-tight cursor-pointer hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="absolute inset-0 w-full h-full appearance-none rounded-lg bg-transparent text-transparent text-base cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <MonthOptions months={months} />
+            <MonthOptions months={months} includeYear={false} />
           </select>
           <ChevronDown
             size={20}

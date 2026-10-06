@@ -54,4 +54,12 @@
     background-color: var(--color-canvas);
     color: var(--color-fg);
   }
+
+  /* Native dropdown lists take their colours from the <select>. Give options their own, so they
+     stay readable when a select is transparent (the month picker), in either theme. */
+  option,
+  optgroup {
+    background-color: var(--color-surface);
+    color: var(--color-fg);
+  }
 }
