@@ -1,5 +1,15 @@
 import { BudgetItemType, ExpenseGroup } from "../types/budget";
 
+// Groups are always listed by name, in the same order everywhere: case-insensitive, accents
+// folded the user's way, and numbers in natural order ("Group 2" before "Group 10")
+const groupNameCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+
+export const compareGroupNames = (a: string, b: string): number => groupNameCollator.compare(a, b);
+
+// A sorted copy for display; the stored order is left alone
+export const sortGroupsByName = (groups: ExpenseGroup[]): ExpenseGroup[] =>
+    [...groups].sort((a, b) => compareGroupNames(a.name, b.name));
+
 // Create a new expense group
 export const createExpenseGroup = (name: string): ExpenseGroup => {
     return {

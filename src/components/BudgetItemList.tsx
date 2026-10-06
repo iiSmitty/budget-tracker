@@ -3,6 +3,7 @@ import BudgetItem from "./BudgetItem";
 import Button from "./ui/Button";
 import { BudgetItemType, ExpenseGroup } from "../types/budget";
 import { CurrencyType, pluralise } from "../utils/utils";
+import { compareGroupNames } from "../utils/groupUtils";
 
 interface BudgetItemListProps {
     items: BudgetItemType[];
@@ -55,7 +56,7 @@ const BudgetItemList = ({
         .sort(([a], [b]) => {
             if (a === UNGROUPED) return 1;
             if (b === UNGROUPED) return -1;
-            return getGroupName(a).localeCompare(getGroupName(b));
+            return compareGroupNames(getGroupName(a), getGroupName(b));
         });
 
     const renderItem = (item: BudgetItemType) => (

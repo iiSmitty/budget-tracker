@@ -33,6 +33,7 @@ import {
   deleteExpenseGroup,
   editExpenseGroup,
   removeGroupFromItems,
+  sortGroupsByName,
 } from "./utils/groupUtils";
 
 import {
@@ -351,6 +352,8 @@ const BudgetApp = () => {
     );
   };
 
+  // Every list of groups (manager, forms, menus, the expense list) shows them by name
+  const groupsByName = sortGroupsByName(expenseGroups);
   const formatAmount = (amount: number) => formatCurrency(amount, currency);
   const currencySymbol = currencies[currency].symbol;
   const currentMonthLabel = formatMonth(currentMonth);
@@ -404,7 +407,7 @@ const BudgetApp = () => {
       <ExpenseGroupManager
         isOpen={showGroupManager}
         onClose={() => setShowGroupManager(false)}
-        groups={expenseGroups}
+        groups={groupsByName}
         onCreateGroup={handleCreateGroup}
         onDeleteGroup={handleDeleteGroup}
         onEditGroup={handleEditGroup}
@@ -482,14 +485,14 @@ const BudgetApp = () => {
                   onAddExpense={addBudgetItem}
                   onCancel={() => setShowAddForm(false)}
                   currency={currency}
-                  groups={expenseGroups}
+                  groups={groupsByName}
                 />
               </div>
             )}
 
             <BudgetItemList
               items={budgetItems}
-              groups={expenseGroups}
+              groups={groupsByName}
               onToggleChecked={toggleChecked}
               onEditItem={editBudgetItem}
               onDeleteItem={deleteBudgetItem}
