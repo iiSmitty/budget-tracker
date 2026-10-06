@@ -1,118 +1,97 @@
-import React from "react";
-import { CurrencyType } from "../utils/utils";
-import { MonthKey, addMonths, formatMonth, getCurrentMonthKey } from "../utils/months";
-import CurrencyIconSwitcher from "../components/CurrencySelector";
+import { ChevronDown, ChevronLeft, ChevronRight, Copy, CornerUpLeft } from "lucide-react";
+import { MonthKey, addMonths, formatMonth, getCurrentMonthKey, getYear } from "../utils/months";
+import Button from "./ui/Button";
 import MonthOptions from "./MonthOptions";
 
-// Define TypeScript interface for component props
 interface MonthSelectorProps {
   currentMonth: MonthKey;
   // Months offered in the dropdown, oldest first
   months: MonthKey[];
   onMonthChange: (month: MonthKey) => void;
   onCopyClick: () => void;
-  currency: CurrencyType;
-  onCurrencyChange: (currency: CurrencyType) => void;
 }
 
-const pillClass =
-  "rounded-full font-medium border-2 transition-colors bg-white hover:bg-gray-100 text-indigo-800 border-indigo-200 dark:bg-indigo-700 dark:hover:bg-indigo-600 dark:text-white dark:border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-
-const MonthSelector: React.FC<MonthSelectorProps> = ({
-  currentMonth,
-  months,
-  onMonthChange,
-  onCopyClick,
-  currency,
-  onCurrencyChange,
-}) => {
+const MonthSelector = ({ currentMonth, months, onMonthChange, onCopyClick }: MonthSelectorProps) => {
   const thisMonth = getCurrentMonthKey();
+  const isThisMonth = currentMonth === thisMonth;
   const previousMonth = addMonths(currentMonth, -1);
   const nextMonth = addMonths(currentMonth, 1);
 
+  // "Back to October", with the year only when it differs from the month being viewed
+  const thisMonthLabel = formatMonth(thisMonth, {
+    includeYear: getYear(thisMonth) !== getYear(currentMonth),
+  });
+
   return (
-    <div className="p-3 sm:p-4 bg-indigo-100 dark:bg-indigo-800 rounded-t-lg">
-      <div className="flex flex-wrap justify-between items-center gap-y-2">
-        {/* Top row with title */}
-        <div className="w-full sm:w-auto flex justify-between items-center gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <h2 className="text-xl font-bold truncate">
-              {formatMonth(currentMonth)}
-              {/* Dropped on phones so the month and year always fit */}
-              <span className="hidden sm:inline"> Budget</span>
-            </h2>
+    <nav aria-label="Month" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <h2 className="sr-only">{formatMonth(currentMonth)} budget</h2>
 
-            {/* Quick way back after browsing other months */}
-            {currentMonth !== thisMonth && (
-              <button
-                onClick={() => onMonthChange(thisMonth)}
-                className={`${pillClass} flex-shrink-0 px-3 py-1 text-xs`}
-                title={`Go to ${formatMonth(thisMonth)}`}
-              >
-                This month
-              </button>
-            )}
-          </div>
+      {/* Step with the arrows, or jump with the month name (a native picker) */}
+      <div className="flex items-center gap-1 -ml-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onMonthChange(previousMonth)}
+          aria-label={`Previous month (${formatMonth(previousMonth)})`}
+          title={formatMonth(previousMonth)}
+        >
+          <ChevronLeft size={22} aria-hidden="true" />
+        </Button>
 
-          {/* Currency icon on mobile - positioned on the right of the title */}
-          <div className="sm:hidden">
-            <CurrencyIconSwitcher
-              currentCurrency={currency}
-              onChange={onCurrencyChange}
-            />
-          </div>
+        {/* A select is as wide as its longest option. Here an invisible copy of the current
+            label sets the width and the select is laid over it, so the chevron hugs the name */}
+        <div className="relative">
+          <span
+            aria-hidden="true"
+            className="invisible block pl-2 pr-8 py-1 text-2xl sm:text-3xl font-bold tracking-tight whitespace-nowrap"
+          >
+            {formatMonth(currentMonth)}
+          </span>
+          <select
+            value={currentMonth}
+            onChange={(e) => onMonthChange(e.target.value)}
+            aria-label="Choose month"
+            className="absolute inset-0 w-full appearance-none bg-transparent pl-2 pr-8 py-1 rounded-lg text-2xl sm:text-3xl font-bold tracking-tight cursor-pointer hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <MonthOptions months={months} />
+          </select>
+          <ChevronDown
+            size={20}
+            aria-hidden="true"
+            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-fg-subtle"
+          />
         </div>
 
-        {/* Bottom row with controls - for smaller screens */}
-        <div className="w-full sm:w-auto flex justify-between items-center gap-2">
-          {/* Month navigation: step with the arrows or jump with the dropdown */}
-          <div className="flex flex-grow sm:flex-grow-0 items-center gap-1">
-            <button
-              onClick={() => onMonthChange(previousMonth)}
-              aria-label={`Previous month (${formatMonth(previousMonth)})`}
-              className={`${pillClass} w-10 h-10 flex-shrink-0 flex items-center justify-center text-lg leading-none`}
-            >
-              ‹
-            </button>
-            <select
-              value={currentMonth}
-              onChange={(e) => onMonthChange(e.target.value)}
-              aria-label="Month"
-              className="flex-grow sm:flex-grow-0 min-w-0 h-10 px-3 rounded-full text-sm font-medium border-2 transition-colors duration-200 bg-white text-indigo-800 border-indigo-200 dark:bg-indigo-700 dark:text-white dark:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <MonthOptions months={months} />
-            </select>
-            <button
-              onClick={() => onMonthChange(nextMonth)}
-              aria-label={`Next month (${formatMonth(nextMonth)})`}
-              className={`${pillClass} w-10 h-10 flex-shrink-0 flex items-center justify-center text-lg leading-none`}
-            >
-              ›
-            </button>
-          </div>
-
-          {/* Controls for desktop */}
-          <div className="flex items-center">
-            {/* Currency icon on desktop */}
-            <div className="hidden sm:block mr-2">
-              <CurrencyIconSwitcher
-                currentCurrency={currency}
-                onChange={onCurrencyChange}
-              />
-            </div>
-
-            {/* Copy button */}
-            <button
-              onClick={onCopyClick}
-              className={`${pillClass} h-10 px-3 text-sm flex items-center gap-1`}
-            >
-              <span className="hidden sm:inline" aria-hidden="true">📋</span>
-              <span>Copy</span>
-            </button>
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onMonthChange(nextMonth)}
+          aria-label={`Next month (${formatMonth(nextMonth)})`}
+          title={formatMonth(nextMonth)}
+        >
+          <ChevronRight size={22} aria-hidden="true" />
+        </Button>
       </div>
-    </div>
+
+      <div className="flex items-center gap-2 ml-auto">
+        {/* Always say where you are: quietly when it's now, actionably when it isn't */}
+        {isThisMonth ? (
+          <span className="inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium bg-surface-muted text-fg-muted">
+            Current month
+          </span>
+        ) : (
+          <Button variant="soft" size="sm" onClick={() => onMonthChange(thisMonth)}>
+            <CornerUpLeft size={16} aria-hidden="true" />
+            Back to {thisMonthLabel}
+          </Button>
+        )}
+
+        <Button variant="secondary" size="sm" onClick={onCopyClick} aria-label="Copy month" title="Copy month">
+          <Copy size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">Copy</span>
+        </Button>
+      </div>
+    </nav>
   );
 };
 

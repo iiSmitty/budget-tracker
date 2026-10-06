@@ -1,7 +1,8 @@
+import { ChevronRight, CircleCheck, Plus, ReceiptText } from "lucide-react";
 import BudgetItem from "./BudgetItem";
 import Button from "./ui/Button";
 import { BudgetItemType, ExpenseGroup } from "../types/budget";
-import { CurrencyType } from "../utils/utils";
+import { CurrencyType, pluralise } from "../utils/utils";
 
 interface BudgetItemListProps {
     items: BudgetItemType[];
@@ -13,8 +14,12 @@ interface BudgetItemListProps {
     onAddFirstExpense: () => void;
     currency: CurrencyType;
     onUpdateGroupCollapse: (groupId: string, isCollapsed: boolean) => void;
-    onMoveToGroup?: (itemId: string, groupId: string) => void;
+    onMoveToGroup: (itemId: string, groupId: string | undefined) => void;
 }
+
+const UNGROUPED = "ungrouped";
+
+const sum = (items: BudgetItemType[]) => items.reduce((total, item) => total + item.amount, 0);
 
 const BudgetItemList = ({
                             items,
@@ -28,306 +33,165 @@ const BudgetItemList = ({
                             onUpdateGroupCollapse,
                             onMoveToGroup,
                         }: BudgetItemListProps) => {
+    // Separate income and expense items, largest first
+    const byAmount = (a: BudgetItemType, b: BudgetItemType) => b.amount - a.amount;
+    const incomeItems = items.filter((item) => item.isIncome).sort(byAmount);
+    const expenseItems = items.filter((item) => !item.isIncome);
 
-
-    // Separate income and expense items
-    const incomeItems = items.filter(item => item.isIncome);
-    const expenseItems = items.filter(item => !item.isIncome);
-
-    // Group only expense items by their group property
-    const groupedExpenses = expenseItems.reduce((acc, item) => {
-        const groupKey = item.group || "ungrouped";
-        if (!acc[groupKey]) {
-            acc[groupKey] = [];
-        }
-        acc[groupKey].push(item);
-        return acc;
-    }, {} as Record<string, BudgetItemType[]>);
-
-    // Sort items within each group by amount (highest first)
-    Object.keys(groupedExpenses).forEach(groupKey => {
-        groupedExpenses[groupKey].sort((a, b) => b.amount - a.amount);
+    // Group expenses by their group; items whose group no longer exists count as ungrouped
+    const groupIds = new Set(groups.map((group) => group.id));
+    const groupedExpenses = new Map<string, BudgetItemType[]>();
+    expenseItems.forEach((item) => {
+        const key = item.group && groupIds.has(item.group) ? item.group : UNGROUPED;
+        groupedExpenses.set(key, [...(groupedExpenses.get(key) ?? []), item]);
     });
 
-    // Sort income items by amount (highest first)
-    incomeItems.sort((a, b) => b.amount - a.amount);
+    const getGroupName = (groupKey: string) =>
+        groupKey === UNGROUPED ? "Ungrouped" : groups.find((group) => group.id === groupKey)?.name ?? "";
 
-    // Calculate group totals for expenses only
-    const getGroupTotal = (groupItems: BudgetItemType[]): number => {
-        return groupItems.reduce((sum, item) => sum + item.amount, 0);
-    };
+    // Ungrouped last, others alphabetically
+    const sortedGroupEntries = [...groupedExpenses.entries()]
+        .map(([groupKey, groupItems]) => [groupKey, [...groupItems].sort(byAmount)] as const)
+        .sort(([a], [b]) => {
+            if (a === UNGROUPED) return 1;
+            if (b === UNGROUPED) return -1;
+            return getGroupName(a).localeCompare(getGroupName(b));
+        });
 
-    const toggleGroupCollapse = (groupId: string) => {
-        const group = groups.find(g => g.id === groupId);
-        if (group) {
-            onUpdateGroupCollapse(groupId, !group.isCollapsed);
-        }
-    };
+    const renderItem = (item: BudgetItemType) => (
+        <li key={item.id}>
+            <BudgetItem
+                item={item}
+                onToggleChecked={onToggleChecked}
+                onEdit={onEditItem}
+                onDelete={onDeleteItem}
+                formatCurrency={formatCurrency}
+                currency={currency}
+                groups={groups}
+                onMoveToGroup={onMoveToGroup}
+            />
+        </li>
+    );
 
-    const getGroupName = (groupKey: string) => {
-        if (groupKey === "ungrouped") return "Ungrouped";
-        const group = groups.find(g => g.id === groupKey);
-        return group?.name || "Unknown Group";
-    };
-
-    const isGroupCollapsed = (groupKey: string) => {
-        if (groupKey === "ungrouped") return false; // Ungrouped is never collapsed
-        const group = groups.find(g => g.id === groupKey);
-        return group?.isCollapsed || false;
-    };
-
-    const getGroupIcon = (groupKey: string) => {
-        if (groupKey === "ungrouped") return "📋";
-        return "📁";
-    };
-
-
-
-    const handleMoveToGroup = (itemId: string, groupId: string) => {
-        if (onMoveToGroup) {
-            onMoveToGroup(itemId, groupId);
-        }
-    };
-
-    const getGroupProgress = (groupItems: BudgetItemType[]) => {
-        const total = groupItems.length;
-        const checked = groupItems.filter(item => item.checked).length;
-        return total > 0 ? (checked / total) * 100 : 0;
-    };
-
-    const renderEmptyState = (icon: string, title: string, body: string, action: string) => (
-        <div className="rounded-xl overflow-hidden border border-border">
-            <div className="p-8 text-center">
-                <div className="text-6xl mb-4" aria-hidden="true">{icon}</div>
-                <p className="text-xl mb-2 text-fg-muted">{title}</p>
-                <p className="text-sm mb-6 text-fg-subtle">{body}</p>
-                <Button variant="primary" size="lg" onClick={onAddFirstExpense} className="shadow-lg">
-                    {action}
-                </Button>
+    const emptyState = (title: string, body: string, action: string) => (
+        <div className="rounded-xl border border-dashed border-border-strong px-6 py-10 text-center">
+            <div className="mx-auto mb-4 grid place-items-center w-12 h-12 rounded-full bg-surface-muted text-fg-subtle">
+                <ReceiptText size={24} aria-hidden="true" />
             </div>
+            <p className="text-lg font-semibold">{title}</p>
+            <p className="mt-1 mb-6 text-sm text-fg-muted">{body}</p>
+            <Button variant="primary" onClick={onAddFirstExpense}>
+                <Plus size={18} aria-hidden="true" />
+                {action}
+            </Button>
         </div>
     );
 
     if (items.length === 0) {
-        return renderEmptyState(
-            "💰",
-            "No items added yet",
-            "Start tracking your expenses and income to get a clear view of your budget",
-            "+ Add Your First Item"
+        return emptyState(
+            "Nothing planned yet",
+            "Add your expenses and any extra income to see where this month's money goes.",
+            "Add your first item"
         );
     }
 
-    // Sort expense groups: ungrouped last, others alphabetically
-    const sortedGroupEntries = Object.entries(groupedExpenses).sort(([a], [b]) => {
-        if (a === "ungrouped") return 1;
-        if (b === "ungrouped") return -1;
-        return getGroupName(a).localeCompare(getGroupName(b));
-    });
-
     return (
-        <>
-            {/* Income Section - Always at top if income exists */}
+        <div className="space-y-4">
+            {/* Additional income - always first when there is any */}
             {incomeItems.length > 0 && (
-                <div className="rounded-xl overflow-hidden mb-4 border bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700">
-                    {/* Income Header */}
-                    <div className="p-4 bg-green-100 dark:bg-green-900/40">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xl" aria-hidden="true">💰</span>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">
-                                        Additional Income
-                                    </h3>
-                                    <div className="flex items-center gap-3 text-sm text-fg-muted">
-                                        <span>{incomeItems.length} item{incomeItems.length !== 1 ? 's' : ''}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-lg font-bold text-green-800 dark:text-green-300">
-                                +{formatCurrency(incomeItems.reduce((sum, item) => sum + item.amount, 0))}
-                            </div>
+                <section
+                    aria-labelledby="income-heading"
+                    className="rounded-xl overflow-hidden border border-green-200 dark:border-green-900"
+                >
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 bg-green-50 dark:bg-green-950/40">
+                        <div>
+                            <h3 id="income-heading" className="font-semibold">Additional income</h3>
+                            <p className="text-sm text-fg-muted">{pluralise(incomeItems.length, "item")}</p>
                         </div>
+                        <span className="font-semibold tabular-nums text-green-700 dark:text-green-400">
+                            +{formatCurrency(sum(incomeItems))}
+                        </span>
                     </div>
-
-                    {/* Income Items */}
-                    <div className="divide-y divide-green-200 dark:divide-green-700">
-                        {incomeItems.map((item) => (
-                            <div
-                                key={item.id}
-                                className={`transition-colors duration-200 hover:bg-green-100/60 dark:hover:bg-green-800/30 ${
-                                    item.checked ? "opacity-60 bg-green-100 dark:bg-green-800/20" : ""
-                                }`}
-                            >
-                                <BudgetItem
-                                    item={item}
-                                    onToggleChecked={onToggleChecked}
-                                    onEdit={onEditItem}
-                                    onDelete={onDeleteItem}
-                                    formatCurrency={formatCurrency}
-                                    currency={currency}
-                                    groups={groups}
-                                    isUngrouped={true} // Income items are always "ungrouped"
-                                    onMoveToGroup={handleMoveToGroup}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                    <ul className="divide-y divide-border">{incomeItems.map(renderItem)}</ul>
+                </section>
             )}
 
-            {/* Expenses Section */}
-            {expenseItems.length > 0 && (
-                <div className="rounded-xl overflow-hidden border border-border">
-                    {sortedGroupEntries.map(([groupKey, groupItems], groupIndex) => {
-                        const groupTotal = getGroupTotal(groupItems);
-                        const groupName = getGroupName(groupKey);
-                        const collapsed = isGroupCollapsed(groupKey);
-                        const isLastGroup = groupIndex === sortedGroupEntries.length - 1;
-                        const groupIcon = getGroupIcon(groupKey);
-                        const progress = getGroupProgress(groupItems);
-                        const isUngrouped = groupKey === "ungrouped";
+            {/* Expenses, by group */}
+            {expenseItems.length > 0 ? (
+                <div className="rounded-xl overflow-hidden border border-border divide-y divide-border">
+                    {sortedGroupEntries.map(([groupKey, groupItems]) => {
+                        const isUngrouped = groupKey === UNGROUPED;
+                        const group = groups.find((g) => g.id === groupKey);
+                        const isCollapsed = !isUngrouped && (group?.isCollapsed ?? false);
+                        const paidCount = groupItems.filter((item) => item.checked).length;
+                        const allPaid = paidCount === groupItems.length;
+                        const listId = `group-items-${groupKey}`;
 
-                        const headerContent = (
-                            <span className="flex items-center justify-between">
-                                <span className="flex items-center gap-3">
-                                    {!isUngrouped && (
-                                        <span
-                                            className={`transform transition-transform duration-200 text-fg-subtle ${
-                                                collapsed ? "rotate-0" : "rotate-90"
-                                            }`}
-                                            aria-hidden="true"
-                                        >
-                                            ▶
-                                        </span>
-                                    )}
-
-                                    <span className="flex items-center gap-2">
-                                        <span className="text-xl" aria-hidden="true">{groupIcon}</span>
-                                        <span className="block">
-                                            <span className="block text-lg font-semibold">{groupName}</span>
-                                            <span className="flex items-center gap-3 text-sm text-fg-muted">
-                                                <span>{groupItems.length} item{groupItems.length !== 1 ? 's' : ''}</span>
-                                            </span>
-                                        </span>
+                        const header = (
+                            <span className="flex items-center gap-3">
+                                {!isUngrouped && (
+                                    <ChevronRight
+                                        size={18}
+                                        aria-hidden="true"
+                                        className={`shrink-0 text-fg-subtle transition-transform duration-200 ${
+                                            isCollapsed ? "" : "rotate-90"
+                                        }`}
+                                    />
+                                )}
+                                <span className="flex-1 min-w-0">
+                                    <span className="block font-semibold truncate">{getGroupName(groupKey)}</span>
+                                    <span className="flex items-center gap-1.5 text-sm text-fg-muted">
+                                        {allPaid ? (
+                                            <>
+                                                <CircleCheck size={14} aria-hidden="true" className="text-green-600 dark:text-green-400" />
+                                                {groupItems.length === 1 ? "Paid" : `All ${groupItems.length} paid`}
+                                            </>
+                                        ) : (
+                                            `${paidCount} of ${pluralise(groupItems.length, "item")} paid`
+                                        )}
                                     </span>
                                 </span>
-
-                                <span className="block text-right">
-                                    <span className="flex items-center gap-2 justify-end">
-                                        {/* Progress indicator - only for grouped items */}
-                                        {progress > 0 && !isUngrouped && (
-                                            <span className="block relative w-6 h-6" aria-hidden="true">
-                                                <svg className="w-6 h-6 transform -rotate-90" viewBox="0 0 24 24">
-                                                    {/* Background circle */}
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                        stroke="currentColor"
-                                                        strokeWidth="2"
-                                                        fill="none"
-                                                        className="text-border-strong"
-                                                    />
-                                                    {/* Progress circle */}
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                        stroke="currentColor"
-                                                        strokeWidth="2"
-                                                        fill="none"
-                                                        strokeDasharray="62.83"
-                                                        strokeDashoffset={62.83 - (progress / 100) * 62.83}
-                                                        className={progress === 100 ? "text-green-500" : "text-blue-500"}
-                                                        style={{
-                                                            transition: 'stroke-dashoffset 0.3s ease-in-out'
-                                                        }}
-                                                    />
-                                                </svg>
-
-                                                {/* Small checkmark when 100% complete */}
-                                                {progress === 100 && (
-                                                    <span className="absolute inset-0 flex items-center justify-center">
-                                                        <span className="text-green-500 text-xs font-bold">✓</span>
-                                                    </span>
-                                                )}
-                                            </span>
-                                        )}
-
-                                        {/* Simple group total */}
-                                        <span className="block text-lg font-bold">{formatCurrency(groupTotal)}</span>
-                                    </span>
+                                <span className="shrink-0 font-semibold tabular-nums">
+                                    {formatCurrency(sum(groupItems))}
                                 </span>
                             </span>
                         );
 
                         return (
-                            <div key={groupKey} className={!isLastGroup ? "border-b-2 border-border" : ""}>
-                                {/* Group Header - a real button when it can collapse, so it works from the keyboard */}
+                            <section key={groupKey} aria-label={getGroupName(groupKey)}>
                                 <h3>
                                     {isUngrouped ? (
-                                        <span className="block p-4 bg-surface-muted">{headerContent}</span>
+                                        <span className="block px-4 py-3 bg-surface-muted/60">{header}</span>
                                     ) : (
                                         <button
                                             type="button"
-                                            onClick={() => toggleGroupCollapse(groupKey)}
-                                            aria-expanded={!collapsed}
-                                            className="block w-full text-left p-4 bg-surface-muted hover:bg-surface-hover transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                                            onClick={() => onUpdateGroupCollapse(groupKey, !isCollapsed)}
+                                            aria-expanded={!isCollapsed}
+                                            aria-controls={listId}
+                                            className="block w-full text-left px-4 py-3 bg-surface-muted/60 hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                                         >
-                                            {headerContent}
+                                            {header}
                                         </button>
                                     )}
                                 </h3>
 
-                                {/* Group Items */}
-                                {!collapsed && (
-                                    <div className="divide-y divide-border">
-                                        {groupItems.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className={`transition-colors duration-200 hover:bg-surface-muted/50 ${
-                                                    item.checked ? "opacity-60 bg-surface-muted/30" : ""
-                                                }`}
-                                            >
-                                                <BudgetItem
-                                                    item={item}
-                                                    onToggleChecked={onToggleChecked}
-                                                    onEdit={onEditItem}
-                                                    onDelete={onDeleteItem}
-                                                    formatCurrency={formatCurrency}
-                                                    currency={currency}
-                                                    groups={groups}
-                                                    isUngrouped={isUngrouped}
-                                                    onMoveToGroup={handleMoveToGroup}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                                {!isCollapsed && (
+                                    <ul id={listId} className="divide-y divide-border">
+                                        {groupItems.map(renderItem)}
+                                    </ul>
                                 )}
-
-                                {/* Collapsed indicator */}
-                                {collapsed && groupItems.length > 0 && (
-                                    <div className="px-4 py-2 text-center border-t border-border bg-surface-muted/40 text-fg-subtle">
-                                        <span className="text-sm">
-                                            {groupItems.length} item{groupItems.length !== 1 ? 's' : ''} hidden • Click to expand
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
+                            </section>
                         );
                     })}
                 </div>
+            ) : (
+                emptyState(
+                    "No expenses yet",
+                    "Add your first expense to start tracking your spending.",
+                    "Add your first expense"
+                )
             )}
-
-            {/* Empty state for no expenses when income exists */}
-            {expenseItems.length === 0 && incomeItems.length > 0 &&
-                renderEmptyState(
-                    "📋",
-                    "No expenses added yet",
-                    "Add your first expense to start tracking your spending",
-                    "+ Add Your First Expense"
-                )}
-        </>
+        </div>
     );
 };
 

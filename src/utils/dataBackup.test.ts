@@ -1,6 +1,24 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { importBudgetData, parseBackup } from "./dataBackup";
+import { importBudgetData, isBackupDue, parseBackup } from "./dataBackup";
+
+describe("isBackupDue", () => {
+    const now = new Date(2026, 9, 6);
+    const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000);
+
+    it("never nags when there's nothing to back up", () => {
+        expect(isBackupDue(null, false, now)).toBe(false);
+    });
+
+    it("is due when there's data that has never been backed up", () => {
+        expect(isBackupDue(null, true, now)).toBe(true);
+    });
+
+    it("is due once the last backup is more than 30 days old", () => {
+        expect(isBackupDue(daysAgo(29), true, now)).toBe(false);
+        expect(isBackupDue(daysAgo(31), true, now)).toBe(true);
+    });
+});
 
 const NOW = new Date(2026, 9, 6);
 const items = [{ id: "1", description: "Rent", amount: 14500, checked: false }];

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Copy } from "lucide-react";
 import Dialog from "./ui/Dialog";
+import SegmentedControl from "./ui/SegmentedControl";
 import Button from "./ui/Button";
 import { fieldClass } from "./ui/fieldClass";
 import MonthOptions from "./MonthOptions";
@@ -55,13 +57,6 @@ const CopyMonthDialog = ({
 
   const otherMonths = months.filter((month) => month !== currentMonth);
 
-  const modeButtonClass = (buttonMode: CopyMode) =>
-    `flex-1 py-2 px-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-      mode === buttonMode
-        ? "bg-primary text-white shadow-sm"
-        : "text-fg-muted hover:text-fg"
-    }`;
-
   // Keyed per step so each step mounts fresh and focus moves into it
   if (isConfirming) {
     return (
@@ -69,6 +64,8 @@ const CopyMonthDialog = ({
         key="confirm"
         isOpen={isOpen}
         onClose={onClose}
+        icon={<Copy size={20} />}
+        iconTone="primary"
         title="Confirm copy"
         description={`This will copy all items from ${fromLabel} to ${toLabel}. Anything already in ${toLabel} stays as it is.`}
         footer={
@@ -90,7 +87,9 @@ const CopyMonthDialog = ({
       key="choose"
       isOpen={isOpen}
       onClose={onClose}
-      title="Copy month data"
+      icon={<Copy size={20} />}
+      iconTone="primary"
+      title="Copy month"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -101,35 +100,27 @@ const CopyMonthDialog = ({
             onClick={() => setIsConfirming(true)}
             disabled={!otherMonth}
           >
-            Copy Expenses
+            Continue
           </Button>
         </>
       }
     >
       {/* Toggle between copy modes */}
-      <div className="flex gap-1 p-1 mb-4 rounded-lg bg-surface-muted" role="group" aria-label="Copy direction">
-        <button
-          type="button"
-          onClick={() => setMode("copyFrom")}
-          aria-pressed={mode === "copyFrom"}
-          className={modeButtonClass("copyFrom")}
-        >
-          Copy FROM another month
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("copyTo")}
-          aria-pressed={mode === "copyTo"}
-          className={modeButtonClass("copyTo")}
-        >
-          Copy TO another month
-        </button>
+      <div className="mb-4">
+        <SegmentedControl
+          label="Copy direction"
+          fullWidth
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "copyFrom", label: "Into this month" },
+            { value: "copyTo", label: "From this month" },
+          ]}
+        />
       </div>
 
-      <label htmlFor="copy-month-select" className="block mb-2 text-sm text-fg-muted">
-        {mode === "copyFrom"
-          ? "Select a month to copy expenses FROM:"
-          : `Your current month (${currentLabel}) expenses will be copied TO:`}
+      <label htmlFor="copy-month-select" className="block mb-1 text-sm font-medium">
+        {mode === "copyFrom" ? "Copy items from" : `Copy ${currentLabel} items to`}
       </label>
       <select
         id="copy-month-select"
@@ -142,16 +133,15 @@ const CopyMonthDialog = ({
         className={fieldClass()}
       >
         <option value="">
-          {mode === "copyFrom" ? "Select source month" : "Select target month"}
+          Choose a month
         </option>
         <MonthOptions months={otherMonths} />
       </select>
 
-      {mode === "copyFrom" && (
-        <p className="mt-3 text-sm text-fg-muted">
-          Expenses will be copied TO your current month ({currentLabel}).
-        </p>
-      )}
+      <p className="mt-3 text-sm text-fg-muted">
+        Items are added {mode === "copyFrom" ? `to ${currentLabel}` : "to the month you choose"}, unpaid.
+        Nothing already there is removed.
+      </p>
     </Dialog>
   );
 };

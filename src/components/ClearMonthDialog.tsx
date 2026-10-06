@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BudgetItemType } from "../types/budget";
-import { exportBudgetData } from "../utils/dataBackup";
+import { CircleCheck, Trash2 } from "lucide-react";
 import { pluralise } from "../utils/utils";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
@@ -11,6 +11,7 @@ interface ClearMonthDialogProps {
     items: BudgetItemType[];
     baseIncome: number;
     formatCurrency: (amount: number) => string;
+    onBackup: () => void;
     onConfirm: (includeIncome: boolean) => void;
     onCancel: () => void;
 }
@@ -24,6 +25,7 @@ const ClearMonthDialog = ({
                               items,
                               baseIncome,
                               formatCurrency,
+                              onBackup,
                               onConfirm,
                               onCancel,
                           }: ClearMonthDialogProps) => {
@@ -44,7 +46,7 @@ const ClearMonthDialog = ({
     }, [isOpen]);
 
     const handleBackup = () => {
-        exportBudgetData();
+        onBackup();
         setBackupDownloaded(true);
     };
 
@@ -62,7 +64,8 @@ const ClearMonthDialog = ({
             role="alertdialog"
             showCloseButton={false}
             initialFocusRef={cancelButtonRef}
-            icon="🗑️"
+            icon={<Trash2 size={20} />}
+            iconTone="danger"
             title={`Clear ${month}?`}
             description={
                 expenses.length > 0
@@ -129,7 +132,9 @@ const ClearMonthDialog = ({
             <p className="mt-3 text-sm text-fg-muted">
                 You can undo this for a few seconds afterwards.{" "}
                 {backupDownloaded ? (
-                    <span className="text-green-700 dark:text-green-400">✓ Backup downloaded</span>
+                    <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
+                        <CircleCheck size={14} aria-hidden="true" /> Backup downloaded
+                    </span>
                 ) : (
                     <button
                         type="button"

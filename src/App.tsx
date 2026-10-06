@@ -10,14 +10,14 @@ import IncomeEditor from "./components/IncomeEditor";
 import BudgetSummary from "./components/BudgetSummary";
 import AddExpenseForm from "./components/AddExpenseForm";
 import BudgetItemList from "./components/BudgetItemList";
-import ProgressBar from "./components/ProgressBar";
-import AnimatedFooter from "./components/AnimatedFooter";
-import DataBackup from "./components/DataBackup";
+import Footer from "./components/Footer";
+import SettingsDialog from "./components/SettingsDialog";
 import ImportExportInfoModal from "./components/ImportExportInfoModal";
 import ExpenseGroupManager from "./components/ExpenseGroupManager";
 import ClearMonthDialog from "./components/ClearMonthDialog";
 import UndoToast from "./components/UndoToast";
 import Button from "./components/ui/Button";
+import { FolderCog, Plus, Trash2, X } from "lucide-react";
 import { BudgetItemType, ExpenseGroup } from "./types/budget";
 
 // Import utilities
@@ -43,17 +43,20 @@ import {
 } from "./utils/clearMonth";
 
 import { copyMonthContents } from "./utils/copyMonth";
+import { exportBudgetData, isBackupDue } from "./utils/dataBackup";
 import { MonthKey, formatMonth, getSelectableMonths } from "./utils/months";
 
 import {
   MonthState,
   STORAGE_KEYS,
+  hasAnyItems,
   hasMonthData,
   listStoredMonths,
   loadAppState,
   loadCurrency,
   loadCurrentMonth,
   loadDarkMode,
+  loadLastBackupAt,
   loadMonthGroups,
   loadMonthItems,
   loadMonthState,
@@ -76,6 +79,10 @@ const BudgetApp = () => {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportExportModal, setShowImportExportModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // When the user last downloaded a backup, for the reminder in the footer
+  const [lastBackupAt, setLastBackupAt] = useState<Date | null>(loadLastBackupAt);
 
   const [expenseGroups, setExpenseGroups] = useState<ExpenseGroup[]>(initialState.groups);
   const [showGroupManager, setShowGroupManager] = useState(false);
@@ -239,9 +246,8 @@ const BudgetApp = () => {
     }
   };
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+  const handleExport = () => {
+    setLastBackupAt(exportBudgetData());
   };
 
   // Add new budget item
@@ -309,30 +315,12 @@ const BudgetApp = () => {
     setLastClear(null);
   };
 
-  // Calculate expenses and additional income separately
-  const expenses = budgetItems.filter(item => !item.isIncome);
-  const additionalIncomeItems = budgetItems.filter(item => item.isIncome);
-
-  // Calculate total budget and used budget
-  const totalBudget = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const additionalIncome = additionalIncomeItems.reduce((sum, item) => sum + item.amount, 0);
-
-  const usedBudget = expenses
-      .filter((item) => item.checked)
-      .reduce((sum, item) => sum + item.amount, 0);
-
-  // Calculate total income and remaining budget
-  const totalIncome = currentIncome + additionalIncome;
-  const remainingBudget = totalIncome - totalBudget;
-
-  // Get appropriate color for budget usage
-  const getBudgetUsageColor = () => {
-    const usagePercentage = (totalBudget / totalIncome) * 100;
-
-    if (usagePercentage >= 100) return "bg-red-500";
-    if (usagePercentage >= 95) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+  // Totals for the summary
+  const sumOf = (items: BudgetItemType[]) => items.reduce((sum, item) => sum + item.amount, 0);
+  const expenses = budgetItems.filter((item) => !item.isIncome);
+  const plannedExpenses = sumOf(expenses);
+  const paidExpenses = sumOf(expenses.filter((item) => item.checked));
+  const additionalIncome = sumOf(budgetItems.filter((item) => item.isIncome));
 
   const handleCreateGroup = (groupName: string) => {
     const newGroup = createExpenseGroup(groupName);
@@ -356,14 +344,10 @@ const BudgetApp = () => {
     setExpenseGroups(updatedGroups);
   };
 
-// Move a single item to a group (for individual dropdown move)
-  const handleMoveToGroup = (itemId: string, groupId: string) => {
-    setBudgetItems(prevItems =>
-        prevItems.map(item =>
-            item.id === itemId
-                ? { ...item, group: groupId }
-                : item
-        )
+  // Move a single item into a group, or out of its group (groupId undefined)
+  const handleMoveToGroup = (itemId: string, groupId: string | undefined) => {
+    setBudgetItems((prevItems) =>
+      prevItems.map((item) => (item.id === itemId ? { ...item, group: groupId } : item))
     );
   };
 
@@ -372,7 +356,7 @@ const BudgetApp = () => {
   const currentMonthLabel = formatMonth(currentMonth);
 
   return (
-    <div className="min-h-screen flex justify-center items-center p-2 sm:p-4 md:p-6 bg-canvas text-fg transition-colors duration-300">
+    <div className="min-h-screen bg-canvas text-fg transition-colors duration-300">
       {/* Welcome Modal for first-time users */}
       <WelcomeModal
         isOpen={showWelcomeModal}
@@ -397,83 +381,113 @@ const BudgetApp = () => {
         onClose={() => setShowImportExportModal(false)}
       />
 
-      <div className="w-full max-w-4xl rounded-lg md:rounded-2xl shadow-xl overflow-hidden transition-colors duration-300 bg-surface shadow-indigo-200/50 dark:shadow-indigo-900/20">
-        {/* Header */}
-        <AppHeader darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <SettingsDialog
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        darkMode={darkMode}
+        onDarkModeChange={setDarkMode}
+        currency={currency}
+        onCurrencyChange={handleCurrencyChange}
+        lastBackupAt={lastBackupAt}
+        onExport={handleExport}
+        onDataImported={handleDataImported}
+      />
 
-        {/* Month selector */}
-        <MonthSelector
-          currentMonth={currentMonth}
-          months={selectableMonths}
-          onMonthChange={handleMonthChange}
-          onCopyClick={() => setShowCopyDialog(true)}
-          currency={currency}
-          onCurrencyChange={handleCurrencyChange}
+      <CopyMonthDialog
+        isOpen={showCopyDialog}
+        onClose={() => setShowCopyDialog(false)}
+        months={selectableMonths}
+        currentMonth={currentMonth}
+        onCopy={copyMonthExpenses}
+      />
+
+      <ExpenseGroupManager
+        isOpen={showGroupManager}
+        onClose={() => setShowGroupManager(false)}
+        groups={expenseGroups}
+        onCreateGroup={handleCreateGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onEditGroup={handleEditGroup}
+      />
+
+      <ClearMonthDialog
+        isOpen={showClearDialog}
+        month={currentMonthLabel}
+        items={budgetItems}
+        baseIncome={currentIncome}
+        formatCurrency={formatAmount}
+        onBackup={handleExport}
+        onConfirm={handleClearMonth}
+        onCancel={() => setShowClearDialog(false)}
+      />
+
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 py-4 sm:py-8 space-y-5 sm:space-y-6">
+        <AppHeader
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode(!darkMode)}
+          onOpenSettings={() => setShowSettings(true)}
         />
 
-        {/* Copy Month Dialog */}
-        <CopyMonthDialog
-          isOpen={showCopyDialog}
-          onClose={() => setShowCopyDialog(false)}
-          months={selectableMonths}
-          currentMonth={currentMonth}
-          onCopy={copyMonthExpenses}
-        />
-
-        {/* Summary Cards */}
-        <BudgetSummary
-            totalBudget={totalBudget}
-            currentIncome={totalIncome} // Pass total income (base + additional)
-            remainingBudget={remainingBudget}
-            formatCurrency={formatAmount}
-            onEditIncome={() => setShowIncomeEditor(true)}
-        />
-
-        {/* Budget Items */}
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Expenses</h2>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setShowGroupManager(true)}>
-                <span aria-hidden="true">📁</span>
-                Groups
-              </Button>
-
-              <Button
-                  variant="primary"
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  aria-expanded={showAddForm}
-              >
-                <span aria-hidden="true">{showAddForm ? "✕" : "+"}</span>
-                {showAddForm ? "Cancel" : "Add Item"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Group Manager Modal */}
-          <ExpenseGroupManager
-              isOpen={showGroupManager}
-              onClose={() => setShowGroupManager(false)}
-              groups={expenseGroups}
-              onCreateGroup={handleCreateGroup}
-              onDeleteGroup={handleDeleteGroup}
-              onEditGroup={handleEditGroup}
+        <main className="space-y-5 sm:space-y-6">
+          <MonthSelector
+            currentMonth={currentMonth}
+            months={selectableMonths}
+            onMonthChange={handleMonthChange}
+            onCopyClick={() => setShowCopyDialog(true)}
           />
 
-          {/* Add new item form */}
-          {showAddForm && (
+          <BudgetSummary
+            baseIncome={currentIncome}
+            additionalIncome={additionalIncome}
+            plannedExpenses={plannedExpenses}
+            paidExpenses={paidExpenses}
+            formatCurrency={formatAmount}
+            onEditIncome={() => setShowIncomeEditor(true)}
+          />
+
+          <section
+            aria-labelledby="items-heading"
+            className="rounded-2xl bg-surface border border-border p-4 sm:p-6"
+          >
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 id="items-heading" className="text-lg font-semibold">
+                Expenses &amp; income
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowGroupManager(true)}
+                  aria-label="Manage groups"
+                  title="Manage groups"
+                >
+                  <FolderCog size={16} aria-hidden="true" />
+                  <span className="hidden sm:inline">Groups</span>
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  aria-expanded={showAddForm}
+                >
+                  {showAddForm ? <X size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+                  {showAddForm ? "Cancel" : "Add"}
+                </Button>
+              </div>
+            </div>
+
+            {showAddForm && (
               <div className="mb-4">
                 <AddExpenseForm
-                    onAddExpense={addBudgetItem}
-                    onCancel={() => setShowAddForm(false)}
-                    currency={currency}
-                    groups={expenseGroups}
+                  onAddExpense={addBudgetItem}
+                  onCancel={() => setShowAddForm(false)}
+                  currency={currency}
+                  groups={expenseGroups}
                 />
               </div>
-          )}
+            )}
 
-          {/* Budget items list */}
-          <BudgetItemList
+            <BudgetItemList
               items={budgetItems}
               groups={expenseGroups}
               onToggleChecked={toggleChecked}
@@ -484,62 +498,35 @@ const BudgetApp = () => {
               currency={currency}
               onUpdateGroupCollapse={handleUpdateGroupCollapse}
               onMoveToGroup={handleMoveToGroup}
-          />
+            />
 
-          {/* Month-level destructive action, kept quiet and away from the everyday buttons */}
-          {budgetItems.length > 0 && (
-              <div className="mt-3 flex justify-end">
-                <Button variant="ghost-danger" onClick={() => setShowClearDialog(true)}>
-                  <span aria-hidden="true">🗑️</span>
+            {/* Month-level destructive action, kept quiet and away from the everyday buttons */}
+            {budgetItems.length > 0 && (
+              <div className="mt-4 flex justify-end">
+                <Button variant="ghost-danger" size="sm" onClick={() => setShowClearDialog(true)}>
+                  <Trash2 size={16} aria-hidden="true" />
                   Clear {currentMonthLabel}…
                 </Button>
               </div>
-          )}
+            )}
+          </section>
+        </main>
 
-          <ClearMonthDialog
-              isOpen={showClearDialog}
-              month={currentMonthLabel}
-              items={budgetItems}
-              baseIncome={currentIncome}
-              formatCurrency={formatAmount}
-              onConfirm={handleClearMonth}
-              onCancel={() => setShowClearDialog(false)}
-          />
-        </div>
-
-        {/* Budget progress */}
-        <ProgressBar
-            label="Budget Usage"
-            value={totalBudget}
-            max={totalIncome}
-            color={getBudgetUsageColor()}
+        <Footer
+          isBackupDue={isBackupDue(lastBackupAt, hasAnyItems())}
+          lastBackupAt={lastBackupAt}
+          onBackUpNow={handleExport}
         />
-
-        {/* Expenses Progress */}
-        <ProgressBar
-          label="Expenses Paid"
-          value={usedBudget}
-          max={totalBudget}
-          color="bg-blue-500"
-        />
-
-        {/* Data Backup Component */}
-        <div className="px-4 pb-4">
-          <DataBackup onDataImported={handleDataImported} />
-        </div>
-
-        {/* Footer */}
-        <AnimatedFooter />
       </div>
 
       {/* Undo for the most recent month clear; keyed so a new clear restarts the countdown */}
       {lastClear && (
-          <UndoToast
-              key={lastClear.clearedAt}
-              message={describeClear(lastClear)}
-              onUndo={handleUndoClear}
-              onDismiss={() => setLastClear(null)}
-          />
+        <UndoToast
+          key={lastClear.clearedAt}
+          message={describeClear(lastClear)}
+          onUndo={handleUndoClear}
+          onDismiss={() => setLastClear(null)}
+        />
       )}
     </div>
   );

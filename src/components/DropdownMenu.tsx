@@ -1,204 +1,204 @@
-import { useRef, useEffect, useState } from "react";
+import { RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import { ExpenseGroup } from "../types/budget";
+import { FolderInput, FolderMinus, Pencil, Trash2 } from "lucide-react";
 
-// Define props interface
+export interface MoveTarget {
+    // undefined moves the item out of its group
+    groupId: string | undefined;
+    name: string;
+}
+
 export interface DropdownMenuProps {
     isOpen: boolean;
     onClose: () => void;
-    position: { top: number; left: number };
+    // The button that opened the menu: it's anchored to it, and focus returns to it
+    anchorRef: RefObject<HTMLButtonElement | null>;
+    label: string;
     onEdit: () => void;
     onDelete: () => void;
-    groups?: ExpenseGroup[];
-    onMoveToGroup?: (itemId: string, groupId: string) => void;
-    isUngrouped?: boolean;
-    itemId?: string;
-    isIncome?: boolean;
+    moveTargets?: MoveTarget[];
+    onMove?: (groupId: string | undefined) => void;
 }
 
-const menuItemClass =
-    "block w-full text-left px-4 py-3 text-sm transition-colors hover:bg-surface-muted focus:outline-none focus-visible:bg-surface-muted";
+const VIEWPORT_MARGIN = 8;
 
+const itemClass =
+    "flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm rounded-md transition-colors hover:bg-surface-muted focus:outline-none focus-visible:bg-surface-muted";
+
+/**
+ * Actions menu for a budget item, following the ARIA menu pattern: arrow keys, Home/End,
+ * Escape to close, focus returned to the trigger. Rendered in a portal, kept on screen and
+ * attached to its trigger as the page scrolls, opening upwards when there isn't room below.
+ */
 const DropdownMenu = ({
                           isOpen,
                           onClose,
-                          position,
+                          anchorRef,
+                          label,
                           onEdit,
                           onDelete,
-                          groups = [],
-                          onMoveToGroup,
-                          isUngrouped = false,
-                          itemId,
-                          isIncome = false,
+                          moveTargets = [],
+                          onMove,
                       }: DropdownMenuProps) => {
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const [showMoveSubmenu, setShowMoveSubmenu] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-    // Check for mobile on mount
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
+    // Place the menu under its trigger, right-aligned, flipped above if it would overflow
+    const place = useCallback(() => {
+        if (!anchorRef.current || !menuRef.current) return;
+        const anchor = anchorRef.current.getBoundingClientRect();
+        const menu = menuRef.current.getBoundingClientRect();
 
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
-    }, []);
+        const left = Math.min(
+            Math.max(VIEWPORT_MARGIN, anchor.right - menu.width),
+            window.innerWidth - menu.width - VIEWPORT_MARGIN
+        );
+        const below = anchor.bottom + 4;
+        const top =
+            below + menu.height > window.innerHeight - VIEWPORT_MARGIN
+                ? Math.max(VIEWPORT_MARGIN, anchor.top - menu.height - 4)
+                : below;
 
-    // Close on clicks outside the menu or on Escape
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target as Node)
-            ) {
-                onClose();
-            }
-        };
+        setPosition({ top, left });
+    }, [anchorRef]);
 
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                onClose();
-            }
-        };
-
+    useLayoutEffect(() => {
         if (isOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-            document.addEventListener("keydown", handleKeyDown);
+            place();
+        } else {
+            setPosition(null);
         }
+    }, [isOpen, place]);
 
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-            document.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [isOpen, onClose]);
-
-    // Close submenu when dropdown closes
+    // Focus the first item once the menu is first placed (not on every reposition)
+    const isPlaced = position !== null;
     useEffect(() => {
-        if (!isOpen) {
-            setShowMoveSubmenu(false);
+        if (isOpen && isPlaced) {
+            menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
         }
-    }, [isOpen]);
+    }, [isOpen, isPlaced]);
+
+    // Close on outside clicks; follow the trigger if the page scrolls or resizes underneath
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handlePointerDown = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (!menuRef.current?.contains(target) && !anchorRef.current?.contains(target)) {
+                onClose();
+            }
+        };
+
+        document.addEventListener("mousedown", handlePointerDown);
+        window.addEventListener("resize", place);
+        window.addEventListener("scroll", place, true);
+        return () => {
+            document.removeEventListener("mousedown", handlePointerDown);
+            window.removeEventListener("resize", place);
+            window.removeEventListener("scroll", place, true);
+        };
+    }, [isOpen, onClose, anchorRef, place]);
 
     if (!isOpen) return null;
 
-    // Calculate position - adjust for mobile to prevent off-screen issues
-    const adjustedPosition = { ...position };
-
-    if (isMobile) {
-        // Ensure dropdown doesn't go off screen on mobile
-        const viewportWidth = window.innerWidth;
-        const dropdownWidth = 200; // Approximate width
-
-        if (adjustedPosition.left + dropdownWidth > viewportWidth) {
-            adjustedPosition.left = viewportWidth - dropdownWidth - 10;
-        }
-        if (adjustedPosition.left < 10) {
-            adjustedPosition.left = 10;
-        }
-    }
-
-    const style = {
-        position: "fixed",
-        top: `${adjustedPosition.top}px`,
-        left: `${adjustedPosition.left}px`,
-        zIndex: 9999,
-        minWidth: isMobile ? "180px" : "140px",
-        maxWidth: isMobile ? "calc(100vw - 20px)" : "200px",
-    } as React.CSSProperties;
-
-    const moveToGroup = (groupId: string) => {
-        if (itemId && onMoveToGroup) {
-            onMoveToGroup(itemId, groupId);
-        }
-        setShowMoveSubmenu(false);
+    const closeAndRefocus = () => {
         onClose();
+        anchorRef.current?.focus();
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+        const items = Array.from(
+            menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []
+        );
+        const index = items.indexOf(document.activeElement as HTMLElement);
+        const focusAt = (next: number) => items[(next + items.length) % items.length]?.focus();
+
+        switch (event.key) {
+            case "ArrowDown":
+                event.preventDefault();
+                focusAt(index + 1);
+                break;
+            case "ArrowUp":
+                event.preventDefault();
+                focusAt(index - 1);
+                break;
+            case "Home":
+                event.preventDefault();
+                focusAt(0);
+                break;
+            case "End":
+                event.preventDefault();
+                focusAt(items.length - 1);
+                break;
+            case "Escape":
+                event.preventDefault();
+                closeAndRefocus();
+                break;
+            case "Tab":
+                onClose();
+                break;
+        }
+    };
+
+    const choose = (action: () => void) => () => {
+        onClose();
+        action();
     };
 
     return ReactDOM.createPortal(
         <div
-            ref={dropdownRef}
-            style={style}
-            className="py-2 rounded-lg shadow-lg border bg-surface text-fg border-border"
-            onClick={(e) => e.stopPropagation()}
+            ref={menuRef}
+            role="menu"
+            aria-label={label}
+            onKeyDown={handleKeyDown}
+            style={{
+                position: "fixed",
+                top: position?.top ?? 0,
+                left: position?.left ?? 0,
+                visibility: position ? "visible" : "hidden",
+            }}
+            className="z-50 w-56 max-w-[calc(100vw-16px)] max-h-[60vh] overflow-y-auto p-1 rounded-xl border border-border bg-surface text-fg shadow-xl"
         >
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                }}
-                className={menuItemClass}
-            >
-                ✏️ Edit
+            <button role="menuitem" tabIndex={-1} className={itemClass} onClick={choose(onEdit)}>
+                <Pencil size={16} aria-hidden="true" className="text-fg-subtle" />
+                Edit
             </button>
 
-            {/* Move to Group Options - Different approach for mobile vs desktop */}
-            {isUngrouped && !isIncome && groups.length > 0 && (
-                <>
-                    {/* Mobile: Show groups directly in main menu */}
-                    {isMobile ? (
-                        <>
-                            <div className="px-4 py-2 text-xs font-medium border-t border-b text-fg-subtle border-border bg-surface-muted/50">
-                                Move to Group:
-                            </div>
-                            {groups.map((group) => (
-                                <button
-                                    key={group.id}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveToGroup(group.id);
-                                    }}
-                                    className={menuItemClass}
-                                >
-                                    📁 {group.name}
-                                </button>
-                            ))}
-                        </>
-                    ) : (
-                        /* Desktop: Keep the submenu approach */
-                        <div className="relative">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowMoveSubmenu(!showMoveSubmenu);
-                                }}
-                                aria-expanded={showMoveSubmenu}
-                                className={menuItemClass}
-                            >
-                                📁 Move to Group ▶
-                            </button>
-
-                            {showMoveSubmenu && (
-                                <div className="absolute left-full top-0 ml-1 py-2 rounded-lg shadow-lg border min-w-36 bg-surface text-fg border-border">
-                                    {groups.map((group) => (
-                                        <button
-                                            key={group.id}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                moveToGroup(group.id);
-                                            }}
-                                            className="block w-full text-left px-3 py-2 text-sm transition-colors hover:bg-surface-muted focus:outline-none focus-visible:bg-surface-muted"
-                                        >
-                                            📁 {group.name}
-                                        </button>
-                                    ))}
-                                </div>
+            {onMove && moveTargets.length > 0 && (
+                <div role="group" aria-label="Move to" className="mt-1 pt-1 border-t border-border">
+                    <div className="px-3 pt-1.5 pb-1 text-xs font-medium text-fg-subtle" aria-hidden="true">
+                        Move to
+                    </div>
+                    {moveTargets.map((target) => (
+                        <button
+                            key={target.groupId ?? "none"}
+                            role="menuitem"
+                            tabIndex={-1}
+                            className={itemClass}
+                            onClick={choose(() => onMove(target.groupId))}
+                        >
+                            {target.groupId ? (
+                                <FolderInput size={16} aria-hidden="true" className="text-fg-subtle" />
+                            ) : (
+                                <FolderMinus size={16} aria-hidden="true" className="text-fg-subtle" />
                             )}
-                        </div>
-                    )}
-                </>
+                            <span className="truncate">{target.name}</span>
+                        </button>
+                    ))}
+                </div>
             )}
 
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                }}
-                className={`${menuItemClass} text-red-600 dark:text-red-400`}
-            >
-                🗑️ Delete
-            </button>
+            <div className="mt-1 pt-1 border-t border-border">
+                <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    className={`${itemClass} text-red-600 dark:text-red-400`}
+                    onClick={choose(onDelete)}
+                >
+                    <Trash2 size={16} aria-hidden="true" />
+                    Delete
+                </button>
+            </div>
         </div>,
         document.body
     );

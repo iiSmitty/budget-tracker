@@ -12,8 +12,22 @@ import {
   saveMonthItems,
 } from "./storage";
 
-// Export all budget data to a JSON file
-export const exportBudgetData = () => {
+// How long before the app starts suggesting a fresh backup
+export const BACKUP_REMINDER_DAYS = 30;
+
+// Whether to nudge the user to back up: there's data, and no backup in the last month
+export const isBackupDue = (
+  lastBackupAt: Date | null,
+  hasData: boolean,
+  now: Date = new Date()
+): boolean => {
+  if (!hasData) return false;
+  if (!lastBackupAt) return true;
+  return now.getTime() - lastBackupAt.getTime() > BACKUP_REMINDER_DAYS * 86_400_000;
+};
+
+// Export all budget data to a JSON file. Returns when the backup was made.
+export const exportBudgetData = (): Date => {
   const exportData: ExportData = {
     version: 2,
     exportedAt: new Date().toISOString(),
@@ -50,6 +64,10 @@ export const exportBudgetData = () => {
 
   // Clean up
   URL.revokeObjectURL(url);
+
+  const backedUpAt = new Date();
+  localStorage.setItem(STORAGE_KEYS.lastBackupAt, backedUpAt.toISOString());
+  return backedUpAt;
 };
 
 // A validated backup, normalised to "YYYY-MM" month keys whatever version it came from.

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { Check, Folder, FolderCog, FolderOpen, Pencil, Trash2, X } from "lucide-react";
 import { ExpenseGroup } from "../types/budget";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
@@ -73,7 +74,7 @@ const ExpenseGroupManager = ({
         <Dialog
             isOpen={isOpen}
             onClose={onClose}
-            icon="📁"
+            icon={<FolderCog size={20} />}
             title="Manage groups"
             footer={
                 <Button variant="secondary" onClick={onClose} className="w-full">
@@ -112,7 +113,7 @@ const ExpenseGroupManager = ({
 
                 {groups.length === 0 ? (
                     <div className="text-center py-8 text-fg-subtle">
-                        <div className="text-4xl mb-2" aria-hidden="true">📂</div>
+                        <FolderOpen size={32} aria-hidden="true" className="mx-auto mb-2" />
                         <p>No groups created yet</p>
                         <p className="text-sm">Create your first group above!</p>
                     </div>
@@ -142,10 +143,10 @@ const ExpenseGroupManager = ({
                                             autoFocus
                                         />
                                         <Button variant="success" size="sm" onClick={handleEditSave} aria-label="Save name">
-                                            ✓
+                                            <Check size={16} aria-hidden="true" />
                                         </Button>
                                         <Button variant="secondary" size="sm" onClick={cancelEdit} aria-label="Cancel rename">
-                                            ✕
+                                            <X size={16} aria-hidden="true" />
                                         </Button>
                                     </div>
                                 ) : confirmingDeleteId === group.id ? (
@@ -165,18 +166,18 @@ const ExpenseGroupManager = ({
                                 ) : (
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <span className="text-lg" aria-hidden="true">📁</span>
+                                            <Folder size={18} aria-hidden="true" className="shrink-0 text-fg-subtle" />
                                             <span className="font-medium truncate">{group.name}</span>
                                         </div>
                                         <div className="flex gap-1">
                                             <button
                                                 type="button"
                                                 onClick={() => startEdit(group)}
-                                                className={`${iconButtonClass} bg-surface-hover/60 hover:bg-surface-hover`}
+                                                className={`${iconButtonClass} text-fg-muted hover:text-fg hover:bg-surface-hover`}
                                                 title="Rename group"
                                                 aria-label={`Rename ${group.name}`}
                                             >
-                                                <span aria-hidden="true">✏️</span>
+                                                <Pencil size={16} aria-hidden="true" />
                                             </button>
                                             <button
                                                 type="button"
@@ -184,11 +185,11 @@ const ExpenseGroupManager = ({
                                                     setEditingGroupId(null);
                                                     setConfirmingDeleteId(group.id);
                                                 }}
-                                                className={`${iconButtonClass} bg-red-600 hover:bg-red-700 text-white`}
+                                                className={`${iconButtonClass} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30`}
                                                 title="Delete group"
                                                 aria-label={`Delete ${group.name}`}
                                             >
-                                                <span aria-hidden="true">🗑️</span>
+                                                <Trash2 size={16} aria-hidden="true" />
                                             </button>
                                         </div>
                                     </div>

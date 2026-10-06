@@ -29,34 +29,39 @@ export const currencies: Record<CurrencyType, CurrencyConfig> = {
   },
 };
 
-// Currency cycle order for the button
+// Order currencies are offered in
 export const currencyOrder: CurrencyType[] = ["ZAR", "EUR", "NZD"];
 
-// Get next currency in the cycle
-export const getNextCurrency = (currentCurrency: CurrencyType): CurrencyType => {
-  const currentIndex = currencyOrder.indexOf(currentCurrency);
-  const nextIndex = (currentIndex + 1) % currencyOrder.length;
-  return currencyOrder[nextIndex];
-};
+const formatters = new Map<CurrencyType, Intl.NumberFormat>();
 
-// Format currency with support for multiple currencies
+// Format an amount with thousands separators: "R 33,898.50", "€33,898.50", "$33,898.50".
+// Amounts are typed with a "." decimal point, so every currency is shown with that same
+// convention rather than its home locale's (South Africa's own style is "R 33 898,50").
 export const formatCurrency = (
     amount: number,
     currencyCode: CurrencyType = "ZAR"
 ): string => {
-  const currency = currencies[currencyCode];
-  return `${currency.symbol}${amount.toFixed(2)}`;
+  let formatter = formatters.get(currencyCode);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: currencyCode,
+      currencyDisplay: "narrowSymbol",
+    });
+    formatters.set(currencyCode, formatter);
+  }
+  return formatter.format(amount);
 };
 
 // "1 expense", "3 expenses"
 export const pluralise = (count: number, singular: string, plural = `${singular}s`): string =>
   `${count} ${count === 1 ? singular : plural}`;
 
-// Helper function to determine category color
-export const getCategoryColor = (amount: number): string => {
-  if (amount > 5000) return "bg-red-100 dark:bg-red-900";
-  if (amount > 1000) return "bg-orange-100 dark:bg-orange-900";
-  if (amount > 500) return "bg-yellow-100 dark:bg-yellow-900";
-  if (amount > 100) return "bg-green-100 dark:bg-green-900";
-  return "bg-blue-100 dark:bg-blue-900";
+// "today", "yesterday", "3 days ago", "2 months ago"
+export const formatTimeAgo = (date: Date, now: Date = new Date()): string => {
+  const days = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
+  const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (days < 30) return relative.format(-days, "day");
+  if (days < 365) return relative.format(-Math.floor(days / 30), "month");
+  return relative.format(-Math.floor(days / 365), "year");
 };

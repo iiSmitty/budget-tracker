@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from "react";
 import { importBudgetData } from "../utils/dataBackup"; // Import the data import function
 import { loadCurrentMonth, loadMonthIncome } from "../utils/storage";
+import { CircleCheck, TriangleAlert, Upload, Wallet } from "lucide-react";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
 import { fieldClass } from "./ui/fieldClass";
@@ -101,11 +102,9 @@ const WelcomeModal = ({
       onClose={() => {}}
       dismissible={false}
       initialFocusRef={inputRef}
-      title={
-        <>
-          Welcome to BudgetTracker! <span aria-hidden="true">👋</span>
-        </>
-      }
+      icon={<Wallet size={20} />}
+      iconTone="primary"
+      title="Welcome to BudgetTracker"
       description="Don't worry, you can change your income anytime later."
       footer={
         <Button
@@ -128,7 +127,8 @@ const WelcomeModal = ({
         </p>
         <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
           <Button variant="secondary" onClick={handleImportClick}>
-            Import Backup
+            <Upload size={16} aria-hidden="true" />
+            Restore from backup
           </Button>
           <input
             type="file"
@@ -141,13 +141,15 @@ const WelcomeModal = ({
           <div role="status" aria-live="polite">
             {importStatus === "success" && (
               <span className="text-green-600 dark:text-green-400 mt-2 md:mt-0 md:ml-2 text-sm md:text-base">
-                ✓ Data restored successfully!
+                <CircleCheck size={16} aria-hidden="true" className="inline mr-1 -mt-0.5" />
+                Data restored successfully!
               </span>
             )}
 
             {importStatus === "error" && (
               <span className="text-red-600 dark:text-red-400 mt-2 md:mt-0 md:ml-2 text-sm md:text-base break-words">
-                ✗ {errorMessage || "Import failed"}
+                <TriangleAlert size={16} aria-hidden="true" className="inline mr-1 -mt-0.5" />
+                {errorMessage || "Import failed"}
               </span>
             )}
           </div>

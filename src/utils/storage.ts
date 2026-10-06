@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
     importExportInfoSeen: "budgetAppImportExportInfoSeen",
     schemaVersion: "budgetAppSchemaVersion",
     legacyBackup: "budgetAppLegacyBackup",
+    lastBackupAt: "budgetAppLastBackupAt",
 } as const;
 
 // Each month's data lives under three keys, e.g. "budgetAppItems-2026-10"
@@ -85,6 +86,17 @@ export const listStoredMonths = (): MonthKey[] => {
         }
     }
     return [...months].sort();
+};
+
+// Whether any month has at least one item, i.e. there's something worth backing up
+export const hasAnyItems = (): boolean =>
+    listStoredMonths().some((month) => loadMonthItems(month).length > 0);
+
+// When the user last downloaded a backup, if ever
+export const loadLastBackupAt = (): Date | null => {
+    const saved = localStorage.getItem(STORAGE_KEYS.lastBackupAt);
+    const date = saved ? new Date(saved) : null;
+    return date && !isNaN(date.getTime()) ? date : null;
 };
 
 export interface MonthState {

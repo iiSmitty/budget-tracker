@@ -1,3 +1,4 @@
+import { HardDriveDownload, Settings } from "lucide-react";
 import Dialog from "./ui/Dialog";
 import Button from "./ui/Button";
 import { STORAGE_KEYS } from "../utils/storage";
@@ -23,7 +24,8 @@ const ImportExportInfoModal = ({
     <Dialog
       isOpen={isOpen}
       onClose={handleClose}
-      icon="💾"
+      icon={<HardDriveDownload size={20} />}
+      iconTone="primary"
       title="Data backup and restore"
       description="This message only appears once."
       footer={
@@ -50,13 +52,17 @@ const ImportExportInfoModal = ({
         </section>
 
         <section className="pb-5 border-b border-border">
-          <h3 className="text-base md:text-lg font-medium mb-2">How to use Import/Export</h3>
+          <h3 className="text-base md:text-lg font-medium mb-2">How to back up</h3>
           <ul className={listClass}>
             <li>
-              <strong>Export</strong>: Save a backup file of your budget data
+              Open <strong>Settings</strong>{" "}
+              <Settings size={14} aria-label="(the gear icon)" className="inline -mt-0.5" /> at the top
             </li>
             <li>
-              <strong>Import</strong>: Restore data from a previous backup
+              <strong>Download backup</strong> saves a file with all your budget data
+            </li>
+            <li>
+              <strong>Restore from file</strong> brings it back, on this or another device
             </li>
           </ul>
         </section>

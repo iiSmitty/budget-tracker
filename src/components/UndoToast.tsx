@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
+import { X } from "lucide-react";
 
 interface UndoToastProps {
     message: string;
@@ -53,9 +54,9 @@ const UndoToast = ({
                     type="button"
                     onClick={onDismiss}
                     aria-label="Dismiss"
-                    className="w-8 h-8 rounded-lg text-lg leading-none transition-colors hover:bg-white/10 dark:hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="grid place-items-center w-8 h-8 rounded-lg transition-colors hover:bg-white/10 dark:hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
-                    ×
+                    <X size={18} aria-hidden="true" />
                 </button>
             </div>
         </div>,

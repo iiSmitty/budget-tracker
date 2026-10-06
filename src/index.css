@@ -20,6 +20,12 @@
   --color-fg-subtle: var(--color-gray-500);
   --color-primary: var(--color-indigo-600);
   --color-primary-hover: var(--color-indigo-700);
+
+  /* Budget meter: two steps of one ramp on a lighter track of the same ramp.
+     Validated with the dataviz palette checker against each theme's surface. */
+  --color-meter-paid: #4338ca;
+  --color-meter-planned: #818cf8;
+  --color-meter-track: var(--color-indigo-100);
 }
 
 @layer base {
@@ -36,6 +42,9 @@
     --color-fg-subtle: var(--color-gray-400);
     --color-primary: var(--color-indigo-600);
     --color-primary-hover: var(--color-indigo-500);
+    --color-meter-paid: #7c83f2;
+    --color-meter-planned: #4a42d6;
+    --color-meter-track: color-mix(in oklab, var(--color-indigo-500) 18%, var(--color-surface));
 
     /* Native controls (selects, checkboxes, scrollbars) match the theme */
     color-scheme: dark;

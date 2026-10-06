@@ -1,13 +1,15 @@
 import { ReactNode, RefObject, useEffect, useId, useRef } from "react";
 import ReactDOM from "react-dom";
+import { X } from "lucide-react";
 
 interface DialogProps {
     isOpen: boolean;
     onClose: () => void;
     title: ReactNode;
     description?: ReactNode;
-    // Decorative element shown beside the title (e.g. an emoji badge)
+    // Decorative icon shown beside the title, tinted by tone
     icon?: ReactNode;
+    iconTone?: "neutral" | "primary" | "danger";
     footer?: ReactNode;
     children?: ReactNode;
     // "alertdialog" for confirmations that interrupt the user
@@ -23,6 +25,12 @@ interface DialogProps {
 
 const FOCUSABLE =
     'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
+const iconToneClasses = {
+    neutral: "bg-surface-muted text-fg-muted",
+    primary: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300",
+    danger: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
+};
 
 const sizeClasses = {
     sm: "sm:max-w-sm",
@@ -49,6 +57,7 @@ const Dialog = ({
                     title,
                     description,
                     icon,
+                    iconTone = "neutral",
                     footer,
                     children,
                     role = "dialog",
@@ -160,7 +169,7 @@ const Dialog = ({
                 <div className="flex items-start gap-4 px-6 pt-6 pb-4">
                     {icon && (
                         <div
-                            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg bg-surface-muted"
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${iconToneClasses[iconTone]}`}
                             aria-hidden="true"
                         >
                             {icon}
@@ -181,9 +190,9 @@ const Dialog = ({
                             type="button"
                             onClick={onClose}
                             aria-label="Close"
-                            className="-mr-2 -mt-1 w-9 h-9 flex-shrink-0 rounded-lg text-2xl leading-none text-fg-subtle hover:text-fg hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            className="-mr-2 -mt-1 w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-fg-subtle hover:text-fg hover:bg-surface-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
-                            ×
+                            <X size={20} aria-hidden="true" />
                         </button>
                     )}
                 </div>
