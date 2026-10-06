@@ -4,23 +4,26 @@
 
 ## Overview
 
-BudgetTracker is a lightweight, privacy-focused personal finance application built to replace spreadsheet-based budget tracking with a modern web interface. The application allows users to set monthly budgets, track expenses, and monitor their financial progress in a clean, intuitive dashboard. The app is specifically designed for South African currency (ZAR/Rand).
+BudgetTracker is a lightweight, privacy-focused personal finance application built to replace spreadsheet-based budget tracking with a modern web interface. The application allows users to set monthly budgets, track expenses, and monitor their financial progress in a clean, intuitive dashboard. Amounts can be shown in South African Rand, Euro or New Zealand Dollar.
 
 ## Features
 
-- **Monthly Budget Management**: Set and track monthly budgets with ease
-- **Expense Tracking**: Add and edit expenses
-- **Financial Overview**: View total budget, income, and remaining funds at a glance
-- **Budget Usage Visualization**: Visual representation of budget consumption
+- **Monthly budgets, by year**: Each month of each year has its own budget; step between months or jump to any month
+- **Expenses and extra income**: Add, edit, group and tick off expenses as they're paid; add one-off income such as freelance work
+- **At-a-glance summary**: What's remaining, and a meter of paid vs still-to-pay against your income
+- **Groups**: Organise expenses into collapsible groups, and move items between them
+- **Copy and clear months**: Start a month from last month's budget, or clear a month in one go (with confirmation and undo)
+- **Backup and restore**: Download your data as a file and restore it on any device, with a reminder when a backup is overdue
 - **Privacy-Focused**: All data stored locally in your browser (localStorage)
-- **Responsive Design**: Works on both desktop and mobile devices (best viewed on desktop currently)
+- **Responsive Design**: Works on desktop and mobile, with full keyboard support
 - **Light/Dark Mode**: Toggle between light and dark themes
 
 ## Technology Stack
 
 - **Frontend**: React with TypeScript
 - **Build Tool**: Vite
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS, with [Lucide](https://lucide.dev) icons
+- **Testing**: Vitest
 - **Storage**: Browser localStorage
 - **Hosting**: Custom subdomain (budget.andresmit.co.za)
 
@@ -35,7 +38,7 @@ BudgetTracker is a lightweight, privacy-focused personal finance application bui
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/budget-tracker.git
+   git clone https://github.com/iiSmitty/budget-tracker.git
    cd budget-tracker
    ```
 
@@ -67,10 +70,11 @@ BudgetTracker is a lightweight, privacy-focused personal finance application bui
 
 ## Usage
 
-1. Set your monthly income and budget
-2. Add your expenses as they occur
-3. View your remaining budget and spending patterns
-4. Adjust your budget as needed for future months
+1. Set your monthly income
+2. Add your planned expenses, optionally in groups, and tick them off as you pay them
+3. Keep an eye on what's remaining in the summary
+4. At the start of a new month, copy last month's budget and adjust it
+5. Back up regularly from Settings, since your data only lives in this browser
 
 ## Privacy
 
@@ -81,15 +85,13 @@ BudgetTracker respects your financial privacy:
 
 ## Deployment
 
-The application is deployed at [budget.andresmit.co.za](https://budget.andresmit.co.za) as a subdomain of the main portfolio site.
+The application is deployed at [budget.andresmit.co.za](https://budget.andresmit.co.za) as a subdomain of the main portfolio site. Every push to `main` is linted, tested, built and published to GitHub Pages.
 
 ## Future Enhancements
 
-- Expense categories and tagging
-- Mobile optimization
-- Multi-currency support (currently South African Rand only)
-- Monthly reports and analytics
-- Data export/import functionality
+- Monthly reports and trends across months
+- Recurring expenses that carry into each new month
+- Installable app (PWA) for offline use on phones
 - Optional cloud sync with end-to-end encryption
 
 ## License
