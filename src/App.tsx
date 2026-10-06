@@ -17,12 +17,13 @@ import ImportExportInfoModal from "./components/ImportExportInfoModal";
 import ExpenseGroupManager from "./components/ExpenseGroupManager";
 import ClearMonthDialog from "./components/ClearMonthDialog";
 import UndoToast from "./components/UndoToast";
+import Button from "./components/ui/Button";
 import { BudgetItemType, ExpenseGroup } from "./types/budget";
 
 // Import utilities
 import {
+  currencies,
   formatCurrency,
-  getCategoryColor,
   loadFromLocalStorage,
   getMonths,
   CurrencyType,
@@ -106,8 +107,6 @@ const BudgetApp = () => {
     const systemMonth = new Date().toLocaleString("default", { month: "long" });
     const monthToUse = savedMonth || systemMonth;
 
-    console.log("Loading data for month:", monthToUse);
-
     // An import replaces data wholesale, so a pending "undo clear" no longer applies
     setLastClear(null);
 
@@ -120,7 +119,6 @@ const BudgetApp = () => {
 
     if (savedIncome) {
       const parsedIncome = JSON.parse(savedIncome);
-      console.log("Setting income to:", parsedIncome);
       setCurrentIncome(parsedIncome);
     }
 
@@ -144,7 +142,6 @@ const BudgetApp = () => {
     // Load currency preference
     const savedCurrency = localStorage.getItem("budgetAppCurrency");
     if (savedCurrency) {
-      console.log("Setting currency to:", savedCurrency);
       setCurrency(savedCurrency as CurrencyType);
     }
 
@@ -200,29 +197,19 @@ const BudgetApp = () => {
     }
   }, [initialFirstVisit]);
 
-  // Apply dark mode classes to body
+  // Theme lives on <html> so `dark:` utilities and the colour tokens follow the toggle.
+  // index.html applies the saved theme before first paint; this keeps it in sync afterwards.
   useEffect(() => {
-    document.body.classList.toggle("dark-bg", darkMode);
-    return () => {
-      document.body.classList.remove("dark-bg");
-    };
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // Load groups when month changes
-  useEffect(() => {
-    // Only run migration, don't reload groups since they're already loaded from initialization
-    migrateToGroupedData(currentMonth);
-  }, [currentMonth]);
-
-// Save groups when they change
+  // Save groups when they change
   useEffect(() => {
     saveGroupsToStorage(currentMonth, expenseGroups);
   }, [expenseGroups, currentMonth]);
 
   useEffect(() => {
-    console.log("Loading groups for month:", currentMonth);
     const groups = loadGroupsFromStorage(currentMonth);
-    console.log("Loaded groups:", groups);
     setExpenseGroups(groups);
     migrateToGroupedData(currentMonth);
   }, [currentMonth]);
@@ -403,7 +390,6 @@ const BudgetApp = () => {
 
   // Edit budget item
   const editBudgetItem = (id: string, description: string, amount: number, group?: string, isIncome?: boolean) => {
-    console.log("Editing item:", id, "new group:", group, "isIncome:", isIncome);
     setBudgetItems(
         budgetItems.map((item) =>
             item.id === id
@@ -505,18 +491,17 @@ const BudgetApp = () => {
     );
   };
 
+  const formatAmount = (amount: number) => formatCurrency(amount, currency);
+  const currencySymbol = currencies[currency].symbol;
+
   return (
-    <div
-      className={`min-h-screen flex justify-center items-center p-2 sm:p-4 md:p-6 transition-colors duration-300 ${
-        darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
-      }`}
-    >
+    <div className="min-h-screen flex justify-center items-center p-2 sm:p-4 md:p-6 bg-canvas text-fg transition-colors duration-300">
       {/* Welcome Modal for first-time users */}
       <WelcomeModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeClose}
-        darkMode={darkMode}
         defaultIncome={currentIncome}
+        currencySymbol={currencySymbol}
         onDataImported={handleDataImported}
       />
 
@@ -525,7 +510,7 @@ const BudgetApp = () => {
         isOpen={showIncomeEditor}
         onClose={handleIncomeEditorClose}
         currentIncome={currentIncome}
-        darkMode={darkMode}
+        currencySymbol={currencySymbol}
         month={currentMonth}
       />
 
@@ -533,16 +518,9 @@ const BudgetApp = () => {
       <ImportExportInfoModal
         isOpen={showImportExportModal}
         onClose={() => setShowImportExportModal(false)}
-        darkMode={darkMode}
       />
 
-      <div
-        className={`w-full max-w-4xl rounded-lg md:rounded-2xl shadow-xl overflow-hidden transition-all duration-300 ${
-          darkMode
-            ? "bg-gray-800 shadow-indigo-900/20"
-            : "bg-white shadow-indigo-200/50"
-        }`}
-      >
+      <div className="w-full max-w-4xl rounded-lg md:rounded-2xl shadow-xl overflow-hidden transition-colors duration-300 bg-surface shadow-indigo-200/50 dark:shadow-indigo-900/20">
         {/* Header */}
         <AppHeader darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
@@ -550,7 +528,6 @@ const BudgetApp = () => {
         <MonthSelector
           currentMonth={currentMonth}
           setCurrentMonth={handleMonthChange}
-          darkMode={darkMode}
           onCopyClick={() => setShowCopyDialog(true)}
           currency={currency}
           onCurrencyChange={handleCurrencyChange}
@@ -562,7 +539,6 @@ const BudgetApp = () => {
           onClose={() => setShowCopyDialog(false)}
           months={months}
           currentMonth={currentMonth}
-          darkMode={darkMode}
           onCopy={copyMonthExpenses}
         />
 
@@ -571,8 +547,7 @@ const BudgetApp = () => {
             totalBudget={totalBudget}
             currentIncome={totalIncome} // Pass total income (base + additional)
             remainingBudget={remainingBudget}
-            darkMode={darkMode}
-            formatCurrency={(amount) => formatCurrency(amount, currency)}
+            formatCurrency={formatAmount}
             onEditIncome={() => setShowIncomeEditor(true)}
         />
 
@@ -581,29 +556,19 @@ const BudgetApp = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Expenses</h2>
             <div className="flex gap-2">
-              <button
-                  onClick={() => setShowGroupManager(true)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
-                      darkMode
-                          ? "bg-purple-700 hover:bg-purple-600 text-white"
-                          : "bg-purple-600 hover:bg-purple-700 text-white"
-                  }`}
-              >
-                <span>📁</span>
+              <Button variant="secondary" onClick={() => setShowGroupManager(true)}>
+                <span aria-hidden="true">📁</span>
                 Groups
-              </button>
+              </Button>
 
-              <button
+              <Button
+                  variant="primary"
                   onClick={() => setShowAddForm(!showAddForm)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
-                      darkMode
-                          ? "bg-indigo-700 hover:bg-indigo-600 text-white"
-                          : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  }`}
+                  aria-expanded={showAddForm}
               >
-                <span>{showAddForm ? "✕" : "+"}</span>
+                <span aria-hidden="true">{showAddForm ? "✕" : "+"}</span>
                 {showAddForm ? "Cancel" : "Add Item"}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -615,14 +580,12 @@ const BudgetApp = () => {
               onCreateGroup={handleCreateGroup}
               onDeleteGroup={handleDeleteGroup}
               onEditGroup={handleEditGroup}
-              darkMode={darkMode}
           />
 
           {/* Add new item form */}
           {showAddForm && (
               <div className="mb-4">
                 <AddExpenseForm
-                    darkMode={darkMode}
                     onAddExpense={addBudgetItem}
                     onCancel={() => setShowAddForm(false)}
                     currency={currency}
@@ -635,12 +598,10 @@ const BudgetApp = () => {
           <BudgetItemList
               items={budgetItems}
               groups={expenseGroups}
-              darkMode={darkMode}
               onToggleChecked={toggleChecked}
               onEditItem={editBudgetItem}
               onDeleteItem={deleteBudgetItem}
-              formatCurrency={(amount) => formatCurrency(amount, currency)}
-              getCategoryColor={getCategoryColor}
+              formatCurrency={formatAmount}
               onAddFirstExpense={() => setShowAddForm(true)}
               currency={currency}
               onUpdateGroupCollapse={handleUpdateGroupCollapse}
@@ -650,17 +611,10 @@ const BudgetApp = () => {
           {/* Month-level destructive action, kept quiet and away from the everyday buttons */}
           {budgetItems.length > 0 && (
               <div className="mt-3 flex justify-end">
-                <button
-                    onClick={() => setShowClearDialog(true)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                        darkMode
-                            ? "text-red-400 hover:bg-red-900/30"
-                            : "text-red-600 hover:bg-red-50"
-                    }`}
-                >
+                <Button variant="ghost-danger" onClick={() => setShowClearDialog(true)}>
                   <span aria-hidden="true">🗑️</span>
                   Clear {currentMonth}…
-                </button>
+                </Button>
               </div>
           )}
 
@@ -669,8 +623,7 @@ const BudgetApp = () => {
               month={currentMonth}
               items={budgetItems}
               baseIncome={currentIncome}
-              darkMode={darkMode}
-              formatCurrency={(amount) => formatCurrency(amount, currency)}
+              formatCurrency={formatAmount}
               onConfirm={handleClearMonth}
               onCancel={() => setShowClearDialog(false)}
           />
@@ -682,7 +635,6 @@ const BudgetApp = () => {
             value={totalBudget}
             max={totalIncome}
             color={getBudgetUsageColor()}
-            darkMode={darkMode}
         />
 
         {/* Expenses Progress */}
@@ -691,16 +643,15 @@ const BudgetApp = () => {
           value={usedBudget}
           max={totalBudget}
           color="bg-blue-500"
-          darkMode={darkMode}
         />
 
         {/* Data Backup Component */}
         <div className="px-4 pb-4">
-          <DataBackup darkMode={darkMode} onDataImported={handleDataImported} />
+          <DataBackup onDataImported={handleDataImported} />
         </div>
 
         {/* Footer */}
-        <AnimatedFooter darkMode={darkMode} />
+        <AnimatedFooter />
       </div>
 
       {/* Undo for the most recent month clear; keyed so a new clear restarts the countdown */}
@@ -710,7 +661,6 @@ const BudgetApp = () => {
               message={describeClear(lastClear)}
               onUndo={handleUndoClear}
               onDismiss={() => setLastClear(null)}
-              darkMode={darkMode}
           />
       )}
     </div>

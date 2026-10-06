@@ -1,12 +1,11 @@
 import React from "react";
-import { CurrencyType } from "../utils/utils";
+import { CurrencyType, getMonths } from "../utils/utils";
 import CurrencyIconSwitcher from "../components/CurrencySelector";
 
 // Define TypeScript interface for component props
 interface MonthSelectorProps {
   currentMonth: string;
   setCurrentMonth: (month: string) => void;
-  darkMode: boolean;
   onCopyClick: () => void;
   currency: CurrencyType;
   onCurrencyChange: (currency: CurrencyType) => void;
@@ -15,32 +14,14 @@ interface MonthSelectorProps {
 const MonthSelector: React.FC<MonthSelectorProps> = ({
   currentMonth,
   setCurrentMonth,
-  darkMode,
   onCopyClick,
   currency,
   onCurrencyChange,
 }) => {
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+  const months = getMonths();
 
   return (
-    <div
-      className={`p-3 sm:p-4 ${
-        darkMode ? "bg-indigo-800" : "bg-indigo-100"
-      } rounded-t-lg`}
-    >
+    <div className="p-3 sm:p-4 bg-indigo-100 dark:bg-indigo-800 rounded-t-lg">
       <div className="flex flex-wrap justify-between items-center">
         {/* Top row with title */}
         <div className="w-full sm:w-auto flex justify-between items-center mb-2 sm:mb-0">
@@ -51,7 +32,6 @@ const MonthSelector: React.FC<MonthSelectorProps> = ({
             <CurrencyIconSwitcher
               currentCurrency={currency}
               onChange={onCurrencyChange}
-              darkMode={darkMode}
             />
           </div>
         </div>
@@ -62,11 +42,8 @@ const MonthSelector: React.FC<MonthSelectorProps> = ({
           <select
             value={currentMonth}
             onChange={(e) => setCurrentMonth(e.target.value)}
-            className={`flex-grow sm:flex-grow-0 px-3 py-2 rounded-full text-sm font-medium ${
-              darkMode
-                ? "bg-indigo-700 text-white border-indigo-600"
-                : "bg-white text-indigo-800 border-indigo-200"
-            } border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200`}
+            aria-label="Month"
+            className="flex-grow sm:flex-grow-0 px-3 py-2 rounded-full text-sm font-medium border-2 transition-colors duration-200 bg-white text-indigo-800 border-indigo-200 dark:bg-indigo-700 dark:text-white dark:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {months.map((month) => (
               <option key={month} value={month}>
@@ -82,20 +59,15 @@ const MonthSelector: React.FC<MonthSelectorProps> = ({
               <CurrencyIconSwitcher
                 currentCurrency={currency}
                 onChange={onCurrencyChange}
-                darkMode={darkMode}
               />
             </div>
 
             {/* Copy button */}
             <button
               onClick={onCopyClick}
-              className={`px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 ${
-                darkMode
-                  ? "bg-indigo-700 hover:bg-indigo-600 text-white"
-                  : "bg-white hover:bg-gray-100 text-indigo-800 border-indigo-200 border-2"
-              }`}
+              className="px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 border-2 transition-colors bg-white hover:bg-gray-100 text-indigo-800 border-indigo-200 dark:bg-indigo-700 dark:hover:bg-indigo-600 dark:text-white dark:border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <span className="hidden sm:inline">📋</span>
+              <span className="hidden sm:inline" aria-hidden="true">📋</span>
               <span>Copy</span>
             </button>
           </div>

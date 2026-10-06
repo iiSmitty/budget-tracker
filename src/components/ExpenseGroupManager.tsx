@@ -1,6 +1,8 @@
-import { useState } from "react";
-import ReactDOM from "react-dom";
+import { useEffect, useId, useState } from "react";
 import { ExpenseGroup } from "../types/budget";
+import Dialog from "./ui/Dialog";
+import Button from "./ui/Button";
+import { fieldClass } from "./ui/fieldClass";
 
 interface ExpenseGroupManagerProps {
     isOpen: boolean;
@@ -9,8 +11,10 @@ interface ExpenseGroupManagerProps {
     onCreateGroup: (groupName: string) => void;
     onDeleteGroup: (groupId: string) => void;
     onEditGroup: (groupId: string, newName: string) => void;
-    darkMode: boolean;
 }
+
+const iconButtonClass =
+    "w-8 h-8 flex items-center justify-center rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 const ExpenseGroupManager = ({
                                  isOpen,
@@ -19,11 +23,20 @@ const ExpenseGroupManager = ({
                                  onCreateGroup,
                                  onDeleteGroup,
                                  onEditGroup,
-                                 darkMode,
                              }: ExpenseGroupManagerProps) => {
+    const newGroupInputId = useId();
     const [newGroupName, setNewGroupName] = useState("");
     const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+    // Start each visit with no half-finished edit or pending delete
+    useEffect(() => {
+        if (isOpen) {
+            setEditingGroupId(null);
+            setConfirmingDeleteId(null);
+        }
+    }, [isOpen]);
 
     const handleCreateGroup = () => {
         if (newGroupName.trim() === "") return;
@@ -33,6 +46,7 @@ const ExpenseGroupManager = ({
     };
 
     const startEdit = (group: ExpenseGroup) => {
+        setConfirmingDeleteId(null);
         setEditingGroupId(group.id);
         setEditingName(group.name);
     };
@@ -51,186 +65,140 @@ const ExpenseGroupManager = ({
     };
 
     const handleDeleteGroup = (groupId: string) => {
-        if (window.confirm("Are you sure you want to delete this group? Items in this group will become ungrouped.")) {
-            onDeleteGroup(groupId);
-        }
+        onDeleteGroup(groupId);
+        setConfirmingDeleteId(null);
     };
 
-    if (!isOpen) return null;
-
-    return ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 backdrop-blur-sm bg-black bg-opacity-50"
-                onClick={onClose}
-            ></div>
-
-            {/* Modal */}
-            <div
-                className={`relative w-full max-w-md rounded-xl shadow-2xl overflow-hidden transition-all transform ${
-                    darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-                }`}
-            >
-                {/* Header */}
-                <div
-                    className={`p-4 ${
-                        darkMode
-                            ? "bg-gradient-to-r from-purple-900 to-indigo-900"
-                            : "bg-gradient-to-r from-purple-600 to-indigo-600"
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white flex items-center">
-                            <span className="mr-2">📁</span>
-                            Manage Groups
-                        </h2>
-                        <button
-                            onClick={onClose}
-                            className="text-white hover:text-gray-300 text-2xl font-bold"
-                        >
-                            ×
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 max-h-96 overflow-y-auto">
-                    {/* Create new group */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2">
-                            Create New Group
-                        </label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="e.g., Entertainment, Transport"
-                                value={newGroupName}
-                                onChange={(e) => setNewGroupName(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && handleCreateGroup()}
-                                className={`flex-1 px-3 py-2 rounded-lg ${
-                                    darkMode
-                                        ? "bg-gray-700 text-white border-gray-600"
-                                        : "bg-gray-50 text-gray-900 border-gray-300"
-                                } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                            />
-                            <button
-                                onClick={handleCreateGroup}
-                                disabled={!newGroupName.trim()}
-                                className={`px-4 py-2 rounded-lg font-medium transition ${
-                                    newGroupName.trim()
-                                        ? "bg-purple-600 hover:bg-purple-700 text-white"
-                                        : "bg-gray-400 cursor-not-allowed text-gray-200"
-                                }`}
-                            >
-                                Add
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Existing groups */}
-                    <div>
-                        <h3 className="text-sm font-medium mb-3">Existing Groups</h3>
-
-                        {groups.length === 0 ? (
-                            <div className={`text-center py-8 ${
-                                darkMode ? "text-gray-400" : "text-gray-500"
-                            }`}>
-                                <div className="text-4xl mb-2">📂</div>
-                                <p>No groups created yet</p>
-                                <p className="text-sm">Create your first group above!</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {groups.map((group) => (
-                                    <div
-                                        key={group.id}
-                                        className={`p-3 rounded-lg border ${
-                                            darkMode
-                                                ? "bg-gray-700 border-gray-600"
-                                                : "bg-gray-50 border-gray-200"
-                                        }`}
-                                    >
-                                        {editingGroupId === group.id ? (
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editingName}
-                                                    onChange={(e) => setEditingName(e.target.value)}
-                                                    onKeyPress={(e) => e.key === "Enter" && handleEditSave()}
-                                                    className={`flex-1 px-2 py-1 rounded ${
-                                                        darkMode
-                                                            ? "bg-gray-800 text-white border-gray-700"
-                                                            : "bg-white text-gray-900 border-gray-300"
-                                                    } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                                                    autoFocus
-                                                />
-                                                <button
-                                                    onClick={handleEditSave}
-                                                    className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
-                                                >
-                                                    ✓
-                                                </button>
-                                                <button
-                                                    onClick={cancelEdit}
-                                                    className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-lg">📁</span>
-                                                    <span className="font-medium">{group.name}</span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={() => startEdit(group)}
-                                                        className={`p-1 rounded text-sm ${
-                                                            darkMode
-                                                                ? "bg-gray-600 hover:bg-gray-500 text-gray-300"
-                                                                : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                                                        }`}
-                                                        title="Edit group"
-                                                    >
-                                                        ✏️
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteGroup(group.id)}
-                                                        className="p-1 rounded text-sm bg-red-600 hover:bg-red-700 text-white"
-                                                        title="Delete group"
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className={`p-4 border-t ${
-                    darkMode ? "border-gray-700 bg-gray-750" : "border-gray-200 bg-gray-50"
-                }`}>
-                    <button
-                        onClick={onClose}
-                        className={`w-full py-2 rounded-lg font-medium transition ${
-                            darkMode
-                                ? "bg-gray-700 hover:bg-gray-600 text-white"
-                                : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                        }`}
+    return (
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            icon="📁"
+            title="Manage groups"
+            footer={
+                <Button variant="secondary" onClick={onClose} className="w-full">
+                    Done
+                </Button>
+            }
+        >
+            {/* Create new group */}
+            <div className="mb-6">
+                <label htmlFor={newGroupInputId} className="block text-sm font-medium mb-2">
+                    Create New Group
+                </label>
+                <div className="flex gap-2">
+                    <input
+                        id={newGroupInputId}
+                        type="text"
+                        placeholder="e.g., Entertainment, Transport"
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
+                        className={fieldClass()}
+                    />
+                    <Button
+                        variant="primary"
+                        onClick={handleCreateGroup}
+                        disabled={!newGroupName.trim()}
                     >
-                        Done
-                    </button>
+                        Add
+                    </Button>
                 </div>
             </div>
-        </div>,
-        document.body
+
+            {/* Existing groups */}
+            <div>
+                <h3 className="text-sm font-medium mb-3">Existing Groups</h3>
+
+                {groups.length === 0 ? (
+                    <div className="text-center py-8 text-fg-subtle">
+                        <div className="text-4xl mb-2" aria-hidden="true">📂</div>
+                        <p>No groups created yet</p>
+                        <p className="text-sm">Create your first group above!</p>
+                    </div>
+                ) : (
+                    <ul className="space-y-2">
+                        {groups.map((group) => (
+                            <li
+                                key={group.id}
+                                className="p-3 rounded-lg border border-border bg-surface-muted/50"
+                            >
+                                {editingGroupId === group.id ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={editingName}
+                                            aria-label={`New name for ${group.name}`}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") handleEditSave();
+                                                if (e.key === "Escape") {
+                                                    // Cancel just the rename, not the whole dialog
+                                                    e.preventDefault();
+                                                    cancelEdit();
+                                                }
+                                            }}
+                                            className={fieldClass()}
+                                            autoFocus
+                                        />
+                                        <Button variant="success" size="sm" onClick={handleEditSave} aria-label="Save name">
+                                            ✓
+                                        </Button>
+                                        <Button variant="secondary" size="sm" onClick={cancelEdit} aria-label="Cancel rename">
+                                            ✕
+                                        </Button>
+                                    </div>
+                                ) : confirmingDeleteId === group.id ? (
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                        <p className="flex-1 text-sm">
+                                            Delete <strong>{group.name}</strong>? Its items become ungrouped.
+                                        </p>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button variant="secondary" size="sm" onClick={() => setConfirmingDeleteId(null)}>
+                                                Cancel
+                                            </Button>
+                                            <Button variant="danger" size="sm" onClick={() => handleDeleteGroup(group.id)}>
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span className="text-lg" aria-hidden="true">📁</span>
+                                            <span className="font-medium truncate">{group.name}</span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => startEdit(group)}
+                                                className={`${iconButtonClass} bg-surface-hover/60 hover:bg-surface-hover`}
+                                                title="Rename group"
+                                                aria-label={`Rename ${group.name}`}
+                                            >
+                                                <span aria-hidden="true">✏️</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingGroupId(null);
+                                                    setConfirmingDeleteId(group.id);
+                                                }}
+                                                className={`${iconButtonClass} bg-red-600 hover:bg-red-700 text-white`}
+                                                title="Delete group"
+                                                aria-label={`Delete ${group.name}`}
+                                            >
+                                                <span aria-hidden="true">🗑️</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </Dialog>
     );
 };
 

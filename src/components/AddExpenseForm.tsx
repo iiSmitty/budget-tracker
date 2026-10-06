@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { CurrencyType, currencies } from "../utils/utils";
 import { ExpenseGroup } from "../types/budget";
+import Button from "./ui/Button";
+import { fieldClass } from "./ui/fieldClass";
 
 interface GroupedAddExpenseFormProps {
-    darkMode: boolean;
     onAddExpense: (description: string, amount: number, group?: string, isIncome?: boolean) => void;
     onCancel: () => void;
     currency: CurrencyType;
@@ -11,12 +12,14 @@ interface GroupedAddExpenseFormProps {
 }
 
 const GroupedAddExpenseForm = ({
-                                   darkMode,
                                    onAddExpense,
                                    onCancel,
                                    currency,
                                    groups,
                                }: GroupedAddExpenseFormProps) => {
+    const descriptionId = useId();
+    const amountId = useId();
+    const groupId = useId();
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState("");
     const [selectedGroup, setSelectedGroup] = useState<string>("");
@@ -24,9 +27,11 @@ const GroupedAddExpenseForm = ({
 
     // Get currency symbol based on the current currency
     const currencySymbol = currencies[currency].symbol;
+    const isSubmittable = description.trim() !== "" && !isNaN(parseFloat(amount));
+    const fieldAccent = isIncome ? "income" : "primary";
 
     const handleSubmit = () => {
-        if (description.trim() === "" || isNaN(parseFloat(amount))) return;
+        if (!isSubmittable) return;
 
         const groupToAssign = selectedGroup === "none" ? undefined : selectedGroup;
         onAddExpense(description, parseFloat(amount), groupToAssign, isIncome);
@@ -36,12 +41,22 @@ const GroupedAddExpenseForm = ({
         setIsIncome(false);
     };
 
+    const switchClass = (size: "sm" | "md") =>
+        `relative inline-flex ${size === "sm" ? "h-5 w-9" : "h-6 w-11"} flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+            isIncome ? "bg-green-600 focus-visible:ring-green-500" : "bg-surface-hover focus-visible:ring-primary"
+        }`;
+
+    const knobClass = (size: "sm" | "md") =>
+        `pointer-events-none inline-block ${size === "sm" ? "h-4 w-4" : "h-5 w-5"} transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            isIncome ? (size === "sm" ? "translate-x-4" : "translate-x-5") : "translate-x-0"
+        }`;
+
     return (
         <div
             className={`mb-4 p-4 rounded-lg transition-colors ${
                 isIncome
-                    ? darkMode ? "bg-green-900/30 border-2 border-green-700" : "bg-green-50 border-2 border-green-300"
-                    : darkMode ? "bg-gray-700" : "bg-gray-100"
+                    ? "bg-green-50 border-2 border-green-300 dark:bg-green-900/30 dark:border-green-700"
+                    : "bg-surface-muted"
             }`}
         >
             {/* Mobile-Optimized Header with Toggle */}
@@ -49,7 +64,7 @@ const GroupedAddExpenseForm = ({
                 {/* Mobile: Stack vertically */}
                 <div className="block sm:hidden">
                     <div className="flex items-center justify-between mb-3">
-            <span className={`font-medium ${isIncome ? 'text-green-600' : ''}`}>
+            <span className={`font-medium ${isIncome ? "text-green-700 dark:text-green-400" : ""}`}>
               {isIncome ? "💰 Adding Income" : "📝 Adding Expense"}
             </span>
 
@@ -57,29 +72,20 @@ const GroupedAddExpenseForm = ({
                         <button
                             type="button"
                             onClick={() => setIsIncome(!isIncome)}
-                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                isIncome
-                                    ? 'bg-green-600 focus:ring-green-500'
-                                    : darkMode
-                                        ? 'bg-gray-600 focus:ring-gray-500'
-                                        : 'bg-gray-200 focus:ring-gray-500'
-                            }`}
+                            className={switchClass("sm")}
                             role="switch"
                             aria-checked={isIncome}
+                            aria-label="Income"
                         >
-              <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isIncome ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-              />
+              <span className={knobClass("sm")} />
                         </button>
                     </div>
 
                     {/* Mobile: Show current mode clearly */}
                     <div className={`text-sm px-3 py-2 rounded-lg text-center ${
                         isIncome
-                            ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
-                            : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                            ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"
+                            : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
                     }`}>
                         {isIncome ? "Mode: Income" : "Mode: Expense"}
                     </div>
@@ -88,76 +94,60 @@ const GroupedAddExpenseForm = ({
                 {/* Desktop: Keep original horizontal layout */}
                 <div className="hidden sm:flex items-center justify-between">
                     <div className="flex items-center gap-3">
-            <span className={`font-medium ${isIncome ? 'text-green-600' : ''}`}>
+            <span className={`font-medium ${isIncome ? "text-green-700 dark:text-green-400" : ""}`}>
               {isIncome ? "💰 Adding Income" : "📝 Adding Expense"}
             </span>
                     </div>
 
                     {/* Toggle Switch - Full size for desktop */}
                     <div className="flex items-center gap-2">
-            <span className={`text-sm ${!isIncome ? 'font-medium' : 'opacity-60'}`}>
+            <span className={`text-sm ${!isIncome ? "font-medium" : "text-fg-subtle"}`}>
               Expense
             </span>
                         <button
                             type="button"
                             onClick={() => setIsIncome(!isIncome)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                isIncome
-                                    ? 'bg-green-600 focus:ring-green-500'
-                                    : darkMode
-                                        ? 'bg-gray-600 focus:ring-gray-500'
-                                        : 'bg-gray-200 focus:ring-gray-500'
-                            }`}
+                            className={switchClass("md")}
                             role="switch"
                             aria-checked={isIncome}
+                            aria-label="Income"
                         >
-              <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isIncome ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-              />
+              <span className={knobClass("md")} />
                         </button>
-                        <span className={`text-sm ${isIncome ? 'font-medium text-green-600' : 'opacity-60'}`}>
+                        <span className={`text-sm ${isIncome ? "font-medium text-green-700 dark:text-green-400" : "text-fg-subtle"}`}>
               Income
             </span>
                     </div>
                 </div>
             </div>
 
-            <div className={`grid gap-4 ${isIncome ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
+            <div className={`grid gap-4 ${isIncome ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}>
                 <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label htmlFor={descriptionId} className="block text-sm font-medium mb-1">Description</label>
                     <input
+                        id={descriptionId}
                         type="text"
                         placeholder={isIncome ? "e.g., Freelance work" : "e.g., Car Payment"}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${
-                            darkMode
-                                ? "bg-gray-800 text-white border-gray-600"
-                                : "bg-white text-gray-900 border-gray-300"
-                        } border focus:outline-none focus:ring-2 ${
-                            isIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
-                        }`}
+                        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                        className={fieldClass({ accent: fieldAccent })}
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">Amount</label>
+                    <label htmlFor={amountId} className="block text-sm font-medium mb-1">Amount</label>
                     <div className="relative">
-                        <span className="absolute left-3 top-2">{currencySymbol}</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted">{currencySymbol}</span>
                         <input
+                            id={amountId}
                             type="number"
+                            inputMode="decimal"
                             placeholder="0.00"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className={`w-full pl-8 pr-3 py-2 rounded-lg ${
-                                darkMode
-                                    ? "bg-gray-800 text-white border-gray-600"
-                                    : "bg-white text-gray-900 border-gray-300"
-                            } border focus:outline-none focus:ring-2 ${
-                                isIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
-                            }`}
+                            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                            className={fieldClass({ accent: fieldAccent, hasPrefix: true })}
                         />
                     </div>
                 </div>
@@ -165,15 +155,12 @@ const GroupedAddExpenseForm = ({
                 {/* Only show group selector for expenses */}
                 {!isIncome && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">Group (Optional)</label>
+                        <label htmlFor={groupId} className="block text-sm font-medium mb-1">Group (Optional)</label>
                         <select
+                            id={groupId}
                             value={selectedGroup}
                             onChange={(e) => setSelectedGroup(e.target.value)}
-                            className={`w-full px-3 py-2 rounded-lg ${
-                                darkMode
-                                    ? "bg-gray-800 text-white border-gray-600"
-                                    : "bg-white text-gray-900 border-gray-300"
-                            } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                            className={fieldClass()}
                         >
                             <option value="">Select a group</option>
                             <option value="none">No group</option>
@@ -188,35 +175,16 @@ const GroupedAddExpenseForm = ({
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
-                <button
-                    onClick={onCancel}
-                    className={`px-4 py-2 rounded-lg ${
-                        darkMode
-                            ? "bg-gray-600 hover:bg-gray-500 text-white"
-                            : "bg-gray-300 hover:bg-gray-400 text-gray-800"
-                    }`}
-                >
+                <Button variant="secondary" onClick={onCancel}>
                     Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={isIncome ? "success" : "primary"}
                     onClick={handleSubmit}
-                    disabled={description.trim() === "" || isNaN(parseFloat(amount))}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                        description.trim() === "" || isNaN(parseFloat(amount))
-                            ? darkMode
-                                ? "bg-gray-600 cursor-not-allowed"
-                                : "bg-gray-300 cursor-not-allowed"
-                            : isIncome
-                                ? darkMode
-                                    ? "bg-green-700 hover:bg-green-600 text-white"
-                                    : "bg-green-600 hover:bg-green-700 text-white"
-                                : darkMode
-                                    ? "bg-indigo-700 hover:bg-indigo-600 text-white"
-                                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                    }`}
+                    disabled={!isSubmittable}
                 >
                     {isIncome ? "Add Income" : "Add Expense"}
-                </button>
+                </Button>
             </div>
         </div>
     );

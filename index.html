@@ -5,9 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>BudgetTracker</title>
+
+    <!-- Apply the saved theme before first paint so there's no flash of the wrong theme (dark is the default) -->
+    <script>
+      try {
+        const saved = localStorage.getItem("budgetAppDarkMode");
+        document.documentElement.classList.toggle("dark", saved === null || JSON.parse(saved) === true);
+      } catch {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
 
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="BudgetTracker" />

@@ -7,7 +7,6 @@ export interface DropdownMenuProps {
     isOpen: boolean;
     onClose: () => void;
     position: { top: number; left: number };
-    darkMode: boolean;
     onEdit: () => void;
     onDelete: () => void;
     groups?: ExpenseGroup[];
@@ -17,11 +16,13 @@ export interface DropdownMenuProps {
     isIncome?: boolean;
 }
 
+const menuItemClass =
+    "block w-full text-left px-4 py-3 text-sm transition-colors hover:bg-surface-muted focus:outline-none focus-visible:bg-surface-muted";
+
 const DropdownMenu = ({
                           isOpen,
                           onClose,
                           position,
-                          darkMode,
                           onEdit,
                           onDelete,
                           groups = [],
@@ -45,7 +46,7 @@ const DropdownMenu = ({
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-    // Handle clicks outside dropdown
+    // Close on clicks outside the menu or on Escape
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -56,12 +57,20 @@ const DropdownMenu = ({
             }
         };
 
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                onClose();
+            }
+        };
+
         if (isOpen) {
             document.addEventListener("mousedown", handleClickOutside);
+            document.addEventListener("keydown", handleKeyDown);
         }
 
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
         };
     }, [isOpen, onClose]);
 
@@ -99,15 +108,19 @@ const DropdownMenu = ({
         maxWidth: isMobile ? "calc(100vw - 20px)" : "200px",
     } as React.CSSProperties;
 
+    const moveToGroup = (groupId: string) => {
+        if (itemId && onMoveToGroup) {
+            onMoveToGroup(itemId, groupId);
+        }
+        setShowMoveSubmenu(false);
+        onClose();
+    };
+
     return ReactDOM.createPortal(
         <div
             ref={dropdownRef}
             style={style}
-            className={`py-2 rounded-lg shadow-lg border ${
-                darkMode
-                    ? "bg-gray-800 text-white border-gray-700"
-                    : "bg-white text-gray-800 border-gray-200"
-            }`}
+            className="py-2 rounded-lg shadow-lg border bg-surface text-fg border-border"
             onClick={(e) => e.stopPropagation()}
         >
             <button
@@ -115,9 +128,7 @@ const DropdownMenu = ({
                     e.stopPropagation();
                     onEdit();
                 }}
-                className={`block w-full text-left px-4 py-3 text-sm transition-colors ${
-                    darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
+                className={menuItemClass}
             >
                 ✏️ Edit
             </button>
@@ -128,11 +139,7 @@ const DropdownMenu = ({
                     {/* Mobile: Show groups directly in main menu */}
                     {isMobile ? (
                         <>
-                            <div className={`px-4 py-2 text-xs font-medium border-t border-b ${
-                                darkMode
-                                    ? "text-gray-400 border-gray-600 bg-gray-750"
-                                    : "text-gray-500 border-gray-200 bg-gray-50"
-                            }`}>
+                            <div className="px-4 py-2 text-xs font-medium border-t border-b text-fg-subtle border-border bg-surface-muted/50">
                                 Move to Group:
                             </div>
                             {groups.map((group) => (
@@ -140,14 +147,9 @@ const DropdownMenu = ({
                                     key={group.id}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (itemId && onMoveToGroup) {
-                                            onMoveToGroup(itemId, group.id);
-                                        }
-                                        onClose();
+                                        moveToGroup(group.id);
                                     }}
-                                    className={`block w-full text-left px-4 py-3 text-sm transition-colors ${
-                                        darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                                    }`}
+                                    className={menuItemClass}
                                 >
                                     📁 {group.name}
                                 </button>
@@ -161,35 +163,22 @@ const DropdownMenu = ({
                                     e.stopPropagation();
                                     setShowMoveSubmenu(!showMoveSubmenu);
                                 }}
-                                className={`block w-full text-left px-4 py-3 text-sm transition-colors ${
-                                    darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                                }`}
+                                aria-expanded={showMoveSubmenu}
+                                className={menuItemClass}
                             >
                                 📁 Move to Group ▶
                             </button>
 
                             {showMoveSubmenu && (
-                                <div
-                                    className={`absolute left-full top-0 ml-1 py-2 rounded-lg shadow-lg border min-w-36 ${
-                                        darkMode
-                                            ? "bg-gray-800 text-white border-gray-700"
-                                            : "bg-white text-gray-800 border-gray-200"
-                                    }`}
-                                >
+                                <div className="absolute left-full top-0 ml-1 py-2 rounded-lg shadow-lg border min-w-36 bg-surface text-fg border-border">
                                     {groups.map((group) => (
                                         <button
                                             key={group.id}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (itemId && onMoveToGroup) {
-                                                    onMoveToGroup(itemId, group.id);
-                                                }
-                                                setShowMoveSubmenu(false);
-                                                onClose();
+                                                moveToGroup(group.id);
                                             }}
-                                            className={`block w-full text-left px-3 py-2 text-sm transition-colors ${
-                                                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                                            }`}
+                                            className="block w-full text-left px-3 py-2 text-sm transition-colors hover:bg-surface-muted focus:outline-none focus-visible:bg-surface-muted"
                                         >
                                             📁 {group.name}
                                         </button>
@@ -206,9 +195,7 @@ const DropdownMenu = ({
                     e.stopPropagation();
                     onDelete();
                 }}
-                className={`block w-full text-left px-4 py-3 text-sm text-red-500 transition-colors ${
-                    darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                }`}
+                className={`${menuItemClass} text-red-600 dark:text-red-400`}
             >
                 🗑️ Delete
             </button>

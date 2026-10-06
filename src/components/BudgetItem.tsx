@@ -1,35 +1,38 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useId} from "react";
 import DropdownMenu from "./DropdownMenu";
-import {CurrencyType, currencies} from "../utils/utils";
+import Button from "./ui/Button";
+import {fieldClass} from "./ui/fieldClass";
+import {CurrencyType, currencies, getCategoryColor} from "../utils/utils";
 import {BudgetItemType, ExpenseGroup} from "../types/budget";
 
 interface BudgetItemProps {
     item: BudgetItemType;
-    darkMode: boolean;
     onToggleChecked: (id: string) => void;
     onEdit: (id: string, description: string, amount: number, group?: string, isIncome?: boolean) => void;
     onDelete: (id: string) => void;
     formatCurrency: (amount: number) => string;
-    getCategoryColor: (amount: number, darkMode: boolean) => string;
     currency: CurrencyType;
     groups?: ExpenseGroup[];
     isUngrouped: boolean;
     onMoveToGroup: (itemId: string, groupId: string) => void;
 }
 
+const menuButtonClass =
+    "p-1 rounded-full hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+
 const BudgetItem = ({
                         item,
-                        darkMode,
                         onToggleChecked,
                         onEdit,
                         onDelete,
                         formatCurrency,
-                        getCategoryColor,
                         currency,
                         groups = [],
                         isUngrouped,
                         onMoveToGroup,
                     }: BudgetItemProps) => {
+    const fieldIds = {description: useId(), amount: useId(), group: useId()};
+
     // State for editing
     const [isEditing, setIsEditing] = useState(false);
     const [editDescription, setEditDescription] = useState(item.description);
@@ -101,13 +104,7 @@ const BudgetItem = ({
     const saveEdit = () => {
         if (editDescription.trim() === "" || isNaN(parseFloat(editAmount))) return;
 
-        console.log("editGroup value:", editGroup);
-        console.log("editGroup type:", typeof editGroup);
-        console.log("editGroup === '':", editGroup === "");
-
         const groupToSave = editGroup === "" ? undefined : editGroup;
-        console.log("Group to save:", groupToSave);
-
         onEdit(item.id, editDescription, parseFloat(editAmount), groupToSave, editIsIncome);
         setIsEditing(false);
     };
@@ -123,9 +120,9 @@ const BudgetItem = ({
     // Get the color class for the amount tag - updated for income items
     const getItemColor = () => {
         if (item.isIncome) {
-            return darkMode ? "bg-green-800 text-green-200" : "bg-green-100 text-green-800";
+            return "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200";
         }
-        return getCategoryColor(item.amount, darkMode);
+        return getCategoryColor(item.amount);
     };
 
     // Format amount with + for income items
@@ -134,9 +131,24 @@ const BudgetItem = ({
         return item.isIncome ? `+${formatted}` : formatted;
     };
 
-// In BudgetItem.tsx, update the editing form section:
+    const dropdown = (
+        <DropdownMenu
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+            position={dropdownPosition}
+            onEdit={startEdit}
+            onDelete={() => onDelete(item.id)}
+            groups={groups}
+            onMoveToGroup={onMoveToGroup}
+            isUngrouped={isUngrouped}
+            itemId={item.id}
+            isIncome={item.isIncome || false}
+        />
+    );
 
     if (isEditing) {
+        const accent = editIsIncome ? "income" : "primary";
+
         return (
             <div className="p-4 space-y-3">
                 {/* Income Toggle in Edit Mode */}
@@ -146,9 +158,9 @@ const BudgetItem = ({
                             type="checkbox"
                             checked={editIsIncome}
                             onChange={(e) => setEditIsIncome(e.target.checked)}
-                            className="h-4 w-4 rounded text-green-600 focus:ring-green-500"
+                            className="h-4 w-4 rounded accent-green-600"
                         />
-                        <span className={`text-sm ${editIsIncome ? 'text-green-600' : ''}`}>
+                        <span className={`text-sm ${editIsIncome ? "text-green-700 dark:text-green-400" : ""}`}>
                         {editIsIncome ? "This is income" : "This is an expense"}
                     </span>
                     </label>
@@ -156,40 +168,33 @@ const BudgetItem = ({
 
                 {/* Description */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label htmlFor={fieldIds.description} className="block text-sm font-medium mb-1">Description</label>
                     <input
+                        id={fieldIds.description}
                         type="text"
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${
-                            darkMode
-                                ? "bg-gray-800 text-white border-gray-600"
-                                : "bg-white text-gray-900 border-gray-300"
-                        } border focus:outline-none focus:ring-2 ${
-                            editIsIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
-                        }`}
+                        onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                        className={fieldClass({accent})}
                     />
                 </div>
 
                 {/* Amount and Group - Conditional Grid */}
-                <div className={`grid gap-3 ${editIsIncome ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                <div className={`grid gap-3 ${editIsIncome ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Amount</label>
+                        <label htmlFor={fieldIds.amount} className="block text-sm font-medium mb-1">Amount</label>
                         <div className="relative">
-                        <span className="absolute left-3 top-2">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted">
                             {currencies[currency].symbol}
                         </span>
                             <input
+                                id={fieldIds.amount}
                                 type="number"
+                                inputMode="decimal"
                                 value={editAmount}
                                 onChange={(e) => setEditAmount(e.target.value)}
-                                className={`w-full pl-8 pr-3 py-2 rounded-lg ${
-                                    darkMode
-                                        ? "bg-gray-800 text-white border-gray-600"
-                                        : "bg-white text-gray-900 border-gray-300"
-                                } border focus:outline-none focus:ring-2 ${
-                                    editIsIncome ? "focus:ring-green-500" : "focus:ring-indigo-500"
-                                }`}
+                                onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                                className={fieldClass({accent, hasPrefix: true})}
                             />
                         </div>
                     </div>
@@ -197,15 +202,12 @@ const BudgetItem = ({
                     {/* Only show group selector for expenses */}
                     {!editIsIncome && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">Group</label>
+                            <label htmlFor={fieldIds.group} className="block text-sm font-medium mb-1">Group</label>
                             <select
+                                id={fieldIds.group}
                                 value={editGroup}
                                 onChange={(e) => setEditGroup(e.target.value)}
-                                className={`w-full px-3 py-2 rounded-lg ${
-                                    darkMode
-                                        ? "bg-gray-800 text-white border-gray-600"
-                                        : "bg-white text-gray-900 border-gray-300"
-                                } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                                className={fieldClass()}
                             >
                                 <option value="">No group</option>
                                 {groups.map((group) => (
@@ -220,26 +222,12 @@ const BudgetItem = ({
 
                 {/* Action buttons */}
                 <div className="flex justify-end gap-2">
-                    <button
-                        onClick={cancelEdit}
-                        className={`px-4 py-2 rounded-lg ${
-                            darkMode
-                                ? "bg-gray-600 hover:bg-gray-500 text-white"
-                                : "bg-gray-300 hover:bg-gray-400 text-gray-800"
-                        }`}
-                    >
+                    <Button variant="secondary" onClick={cancelEdit}>
                         Cancel
-                    </button>
-                    <button
-                        onClick={saveEdit}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
-                            editIsIncome
-                                ? "bg-green-600 hover:bg-green-700 text-white"
-                                : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                        }`}
-                    >
+                    </Button>
+                    <Button variant={editIsIncome ? "success" : "primary"} onClick={saveEdit}>
                         Save
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -248,13 +236,14 @@ const BudgetItem = ({
     // Mobile layout
     if (isMobile) {
         return (
-            <div className="p-3 grid grid-cols-12 items-center border-b border-gray-700">
+            <div className="p-3 grid grid-cols-12 items-center">
                 {/* Checkbox */}
                 <div className="col-span-1">
                     <input
                         type="checkbox"
                         checked={item.checked}
                         onChange={() => onToggleChecked(item.id)}
+                        aria-label={`Mark ${item.description} as paid`}
                         className="h-5 w-5 rounded"
                     />
                 </div>
@@ -271,7 +260,7 @@ const BudgetItem = ({
                         {item.description}
                     </div>
                     {isLongDescription && isExpanded && (
-                        <div className="text-xs text-gray-400 mt-0.5">Tap to collapse</div>
+                        <div className="text-xs text-fg-subtle mt-0.5">Tap to collapse</div>
                     )}
                 </div>
 
@@ -286,25 +275,13 @@ const BudgetItem = ({
                 <div className="col-span-1 flex justify-center">
                     <button
                         onClick={toggleDropdown}
-                        className={`p-1 rounded-full ${
-                            darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
-                        }`}
+                        aria-label={`Actions for ${item.description}`}
+                        aria-expanded={isDropdownOpen}
+                        className={menuButtonClass}
                     >
                         •••
                     </button>
-                    <DropdownMenu
-                        isOpen={isDropdownOpen}
-                        onClose={() => setIsDropdownOpen(false)}
-                        position={dropdownPosition}
-                        darkMode={darkMode}
-                        onEdit={startEdit}
-                        onDelete={() => onDelete(item.id)}
-                        groups={groups}
-                        onMoveToGroup={onMoveToGroup}
-                        isUngrouped={isUngrouped}
-                        itemId={item.id}
-                        isIncome={item.isIncome || false}
-                    />
+                    {dropdown}
                 </div>
             </div>
         );
@@ -318,6 +295,7 @@ const BudgetItem = ({
                     type="checkbox"
                     checked={item.checked}
                     onChange={() => onToggleChecked(item.id)}
+                    aria-label={`Mark ${item.description} as paid`}
                     className="h-5 w-5 rounded"
                 />
             </div>
@@ -335,25 +313,13 @@ const BudgetItem = ({
                 <div className="dropdown relative">
                     <button
                         onClick={toggleDropdown}
-                        className={`dropdown-toggle p-1 rounded-full ${
-                            darkMode ? "hover:bg-gray-600" : "hover:bg-gray-200"
-                        }`}
+                        aria-label={`Actions for ${item.description}`}
+                        aria-expanded={isDropdownOpen}
+                        className={`dropdown-toggle ${menuButtonClass}`}
                     >
                         •••
                     </button>
-                    <DropdownMenu
-                        isOpen={isDropdownOpen}
-                        onClose={() => setIsDropdownOpen(false)}
-                        position={dropdownPosition}
-                        darkMode={darkMode}
-                        onEdit={startEdit}
-                        onDelete={() => onDelete(item.id)}
-                        groups={groups}
-                        onMoveToGroup={onMoveToGroup}
-                        isUngrouped={isUngrouped}
-                        itemId={item.id}
-                        isIncome={item.isIncome || false}
-                    />
+                    {dropdown}
                 </div>
             </div>
         </div>

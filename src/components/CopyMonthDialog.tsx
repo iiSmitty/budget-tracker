@@ -1,219 +1,154 @@
 import { useState, useEffect } from "react";
+import Dialog from "./ui/Dialog";
+import Button from "./ui/Button";
+import { fieldClass } from "./ui/fieldClass";
 
 interface CopyMonthDialogProps {
   isOpen: boolean;
   onClose: () => void;
   months: string[];
   currentMonth: string;
-  darkMode: boolean;
   onCopy: (fromMonth: string, toMonth: string) => void;
 }
+
+type CopyMode = "copyFrom" | "copyTo";
 
 const CopyMonthDialog = ({
   isOpen,
   onClose,
   months,
   currentMonth,
-  darkMode,
   onCopy,
 }: CopyMonthDialogProps) => {
   const [sourceMonth, setSourceMonth] = useState("");
   const [targetMonth, setTargetMonth] = useState("");
-  const [mode, setMode] = useState("copyFrom"); // "copyFrom" or "copyTo"
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [mode, setMode] = useState<CopyMode>("copyFrom");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
       setSourceMonth("");
-      setTargetMonth(currentMonth);
+      setTargetMonth("");
       setMode("copyFrom");
-      setConfirmOpen(false);
+      setIsConfirming(false);
     }
   }, [isOpen, currentMonth]);
 
-  if (!isOpen) return null;
-
-  const handleCopyRequest = () => {
-    // Show confirmation before copying
-    setConfirmOpen(true);
-  };
+  // Get source and destination based on mode
+  const fromMonth = mode === "copyFrom" ? sourceMonth : currentMonth;
+  const toMonth = mode === "copyFrom" ? currentMonth : targetMonth;
+  const otherMonth = mode === "copyFrom" ? sourceMonth : targetMonth;
 
   const handleConfirmCopy = () => {
-    // Get source and destination based on mode
-    const fromMonth = mode === "copyFrom" ? sourceMonth : currentMonth;
-    const toMonth = mode === "copyFrom" ? currentMonth : targetMonth;
-
-    // Execute the copy
     onCopy(fromMonth, toMonth);
-
-    // Close dialogs
-    setConfirmOpen(false);
     onClose();
   };
 
+  const otherMonths = months.filter((month) => month !== currentMonth);
+
+  const modeButtonClass = (buttonMode: CopyMode) =>
+    `flex-1 py-2 px-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      mode === buttonMode
+        ? "bg-primary text-white shadow-sm"
+        : "text-fg-muted hover:text-fg"
+    }`;
+
+  // Keyed per step so each step mounts fresh and focus moves into it
+  if (isConfirming) {
+    return (
+      <Dialog
+        key="confirm"
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Confirm copy"
+        description={`This will copy all items from ${fromMonth} to ${toMonth}. Anything already in ${toMonth} stays as it is.`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsConfirming(false)}>
+              Back
+            </Button>
+            <Button variant="primary" onClick={handleConfirmCopy}>
+              Copy to {toMonth}
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div
-        className={`rounded-xl p-6 w-full max-w-md ${
-          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-        }`}
-      >
-        <h2 className="text-xl font-bold mb-4">Copy Month Data</h2>
-
-        {/* Toggle between copy modes */}
-        <div className="flex mb-4 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setMode("copyFrom")}
-            className={`flex-1 py-2 ${
-              mode === "copyFrom"
-                ? darkMode
-                  ? "bg-indigo-700 text-white"
-                  : "bg-indigo-600 text-white"
-                : darkMode
-                ? "bg-gray-700"
-                : "bg-gray-200"
-            }`}
-          >
-            Copy FROM another month
-          </button>
-          <button
-            onClick={() => setMode("copyTo")}
-            className={`flex-1 py-2 ${
-              mode === "copyTo"
-                ? darkMode
-                  ? "bg-indigo-700 text-white"
-                  : "bg-indigo-600 text-white"
-                : darkMode
-                ? "bg-gray-700"
-                : "bg-gray-200"
-            }`}
-          >
-            Copy TO another month
-          </button>
-        </div>
-
-        {mode === "copyFrom" ? (
-          <div>
-            <p className="mb-4">Select a month to copy expenses FROM:</p>
-            <select
-              value={sourceMonth}
-              onChange={(e) => setSourceMonth(e.target.value)}
-              className={`w-full p-2 mb-4 rounded-lg ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600"
-                  : "bg-white border-gray-300"
-              } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-            >
-              <option value="">Select source month</option>
-              {months.map(
-                (month) =>
-                  month !== currentMonth && (
-                    <option key={month} value={month}>
-                      {month}
-                    </option>
-                  )
-              )}
-            </select>
-            <p className="mb-4">
-              Expenses will be copied TO your current month ({currentMonth}).
-            </p>
-          </div>
-        ) : (
-          <div>
-            <p className="mb-4">
-              Your current month ({currentMonth}) expenses will be copied TO:
-            </p>
-            <select
-              value={targetMonth}
-              onChange={(e) => setTargetMonth(e.target.value)}
-              className={`w-full p-2 mb-4 rounded-lg ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600"
-                  : "bg-white border-gray-300"
-              } border focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-            >
-              <option value="">Select target month</option>
-              {months.map(
-                (month) =>
-                  month !== currentMonth && (
-                    <option key={month} value={month}>
-                      {month}
-                    </option>
-                  )
-              )}
-            </select>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 rounded-lg ${
-              darkMode
-                ? "bg-gray-700 hover:bg-gray-600"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
+    <Dialog
+      key="choose"
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Copy month data"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            onClick={handleCopyRequest}
-            disabled={
-              (mode === "copyFrom" && !sourceMonth) ||
-              (mode === "copyTo" && !targetMonth)
-            }
-            className={`px-4 py-2 rounded-lg ${
-              darkMode
-                ? "bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-600"
-                : "bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400"
-            } text-white disabled:opacity-50`}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setIsConfirming(true)}
+            disabled={!otherMonth}
           >
             Copy Expenses
-          </button>
-        </div>
-
-        {/* Confirmation dialog */}
-        {confirmOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div
-              className={`rounded-xl p-6 w-full max-w-md ${
-                darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-              }`}
-            >
-              <h3 className="text-lg font-bold mb-2">Confirm Copy</h3>
-              <p className="mb-4">
-                {mode === "copyFrom"
-                  ? `This will copy all expenses from ${sourceMonth} to ${currentMonth}. Any existing expenses in ${currentMonth} will remain unchanged.`
-                  : `This will copy all expenses from ${currentMonth} to ${targetMonth}. Any existing expenses in ${targetMonth} will remain unchanged.`}
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setConfirmOpen(false)}
-                  className={`px-4 py-2 rounded-lg ${
-                    darkMode
-                      ? "bg-gray-700 hover:bg-gray-600"
-                      : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmCopy}
-                  className={`px-4 py-2 rounded-lg ${
-                    darkMode
-                      ? "bg-red-700 hover:bg-red-600"
-                      : "bg-red-600 hover:bg-red-700"
-                  } text-white`}
-                >
-                  Yes, Copy
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          </Button>
+        </>
+      }
+    >
+      {/* Toggle between copy modes */}
+      <div className="flex gap-1 p-1 mb-4 rounded-lg bg-surface-muted" role="group" aria-label="Copy direction">
+        <button
+          type="button"
+          onClick={() => setMode("copyFrom")}
+          aria-pressed={mode === "copyFrom"}
+          className={modeButtonClass("copyFrom")}
+        >
+          Copy FROM another month
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("copyTo")}
+          aria-pressed={mode === "copyTo"}
+          className={modeButtonClass("copyTo")}
+        >
+          Copy TO another month
+        </button>
       </div>
-    </div>
+
+      <label htmlFor="copy-month-select" className="block mb-2 text-sm text-fg-muted">
+        {mode === "copyFrom"
+          ? "Select a month to copy expenses FROM:"
+          : `Your current month (${currentMonth}) expenses will be copied TO:`}
+      </label>
+      <select
+        id="copy-month-select"
+        value={otherMonth}
+        onChange={(e) =>
+          mode === "copyFrom"
+            ? setSourceMonth(e.target.value)
+            : setTargetMonth(e.target.value)
+        }
+        className={fieldClass()}
+      >
+        <option value="">
+          {mode === "copyFrom" ? "Select source month" : "Select target month"}
+        </option>
+        {otherMonths.map((month) => (
+          <option key={month} value={month}>
+            {month}
+          </option>
+        ))}
+      </select>
+
+      {mode === "copyFrom" && (
+        <p className="mt-3 text-sm text-fg-muted">
+          Expenses will be copied TO your current month ({currentMonth}).
+        </p>
+      )}
+    </Dialog>
   );
 };
 

@@ -1,21 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 
-interface AnimatedFooterProps {
-  darkMode: boolean;
-}
+// Phrases to display (module-level so the typing effect has a stable dependency)
+const phrases = [
+  "Budget wisely, live fully",
+  "Track expenses, find freedom",
+  "Your money, your control",
+  "Financial clarity by design",
+];
 
-const AnimatedFooter = ({ darkMode }: AnimatedFooterProps) => {
+const AnimatedFooter = () => {
   const [displayText, setDisplayText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const [showCursor, setShowCursor] = useState(true);
-
-  // Phrases to display
-  const phrases = [
-    "Budget wisely, live fully",
-    "Track expenses, find freedom",
-    "Your money, your control",
-    "Financial clarity by design",
-  ];
 
   // Use refs to persist values between renders without causing re-renders
   const phraseIndex = useRef(0);
@@ -95,14 +91,10 @@ const AnimatedFooter = ({ darkMode }: AnimatedFooterProps) => {
       const typeTimer = setTimeout(type, 200); // Slower initial start
       return () => clearTimeout(typeTimer);
     }
-  }, [displayText, isTyping, phrases]);
+  }, [displayText, isTyping]);
 
   return (
-    <div
-      className={`p-4 text-center ${
-        darkMode ? "text-gray-400" : "text-gray-500"
-      }`}
-    >
+    <div className="p-4 text-center text-fg-subtle">
       <div className="flex flex-col items-center justify-center gap-1">
         <div className="h-6 min-h-6 flex items-center justify-center">
           <p className="font-mono tracking-wide">
@@ -112,6 +104,7 @@ const AnimatedFooter = ({ darkMode }: AnimatedFooterProps) => {
               className={`${
                 showCursor ? "opacity-100" : "opacity-0"
               } transition-opacity ml-0.5`}
+              aria-hidden="true"
             >
               |
             </span>
@@ -122,11 +115,7 @@ const AnimatedFooter = ({ darkMode }: AnimatedFooterProps) => {
             href="https://andresmit.co.za/"
             target="_blank"
             rel="noopener noreferrer"
-            className={`font-medium ${
-              darkMode
-                ? "text-indigo-400 hover:text-indigo-300"
-                : "text-indigo-600 hover:text-indigo-700"
-            } transition-colors`}
+            className="font-medium transition-colors text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             andresmit.co.za
           </a>

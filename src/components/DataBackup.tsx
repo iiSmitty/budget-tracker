@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import { exportBudgetData, importBudgetData } from "../utils/dataBackup";
+import Button from "./ui/Button";
 
 interface DataBackupProps {
-  darkMode: boolean;
   onDataImported: () => void; // Callback to reload app state after import
 }
 
-const DataBackup: React.FC<DataBackupProps> = ({ darkMode, onDataImported }) => {
+const DataBackup: React.FC<DataBackupProps> = ({ onDataImported }) => {
   const [importStatus, setImportStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,13 +28,13 @@ const DataBackup: React.FC<DataBackupProps> = ({ darkMode, onDataImported }) => 
     try {
       setImportStatus("idle");
       setErrorMessage("");
-      
+
       await importBudgetData(file);
       setImportStatus("success");
-      
+
       // Call the callback to reload app state
       onDataImported();
-      
+
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -47,32 +47,18 @@ const DataBackup: React.FC<DataBackupProps> = ({ darkMode, onDataImported }) => 
   };
 
   return (
-    <div className={`mt-6 p-4 rounded-lg ${darkMode ? "bg-gray-700" : "bg-gray-100"}`}>
+    <div className="mt-6 p-4 rounded-lg bg-surface-muted">
       <h3 className="text-lg font-medium mb-3">Backup & Restore Data</h3>
-      
+
       <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={handleExport}
-          className={`px-4 py-2 rounded-md font-medium ${
-            darkMode
-              ? "bg-blue-600 hover:bg-blue-500 text-white"
-              : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
-        >
+        <Button variant="primary" onClick={handleExport}>
           Export Data
-        </button>
-        
-        <button
-          onClick={handleImportClick}
-          className={`px-4 py-2 rounded-md font-medium ${
-            darkMode
-              ? "bg-purple-600 hover:bg-purple-500 text-white"
-              : "bg-purple-500 hover:bg-purple-600 text-white"
-          }`}
-        >
+        </Button>
+
+        <Button variant="secondary" onClick={handleImportClick}>
           Import Data
-        </button>
-        
+        </Button>
+
         <input
           type="file"
           ref={fileInputRef}
@@ -81,20 +67,22 @@ const DataBackup: React.FC<DataBackupProps> = ({ darkMode, onDataImported }) => 
           className="hidden"
         />
       </div>
-      
-      {importStatus === "success" && (
-        <div className="mt-3 p-2 bg-green-100 text-green-800 rounded">
-          Data imported successfully! Your budget information has been restored.
-        </div>
-      )}
-      
-      {importStatus === "error" && (
-        <div className="mt-3 p-2 bg-red-100 text-red-800 rounded">
-          Import failed: {errorMessage || "Invalid file format"}
-        </div>
-      )}
-      
-      <p className={`mt-3 text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+
+      <div role="status" aria-live="polite">
+        {importStatus === "success" && (
+          <div className="mt-3 p-2 rounded bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+            Data imported successfully! Your budget information has been restored.
+          </div>
+        )}
+
+        {importStatus === "error" && (
+          <div className="mt-3 p-2 rounded bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200">
+            Import failed: {errorMessage || "Invalid file format"}
+          </div>
+        )}
+      </div>
+
+      <p className="mt-3 text-sm text-fg-muted">
         Exporting creates a backup file of all your budget data. Import this file on any device to restore your data.
       </p>
     </div>

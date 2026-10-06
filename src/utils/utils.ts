@@ -53,12 +53,12 @@ export const pluralise = (count: number, singular: string, plural = `${singular}
   `${count} ${count === 1 ? singular : plural}`;
 
 // Helper function to determine category color
-export const getCategoryColor = (amount: number, darkMode: boolean): string => {
-  if (amount > 5000) return darkMode ? "bg-red-900" : "bg-red-100";
-  if (amount > 1000) return darkMode ? "bg-orange-900" : "bg-orange-100";
-  if (amount > 500) return darkMode ? "bg-yellow-900" : "bg-yellow-100";
-  if (amount > 100) return darkMode ? "bg-green-900" : "bg-green-100";
-  return darkMode ? "bg-blue-900" : "bg-blue-100";
+export const getCategoryColor = (amount: number): string => {
+  if (amount > 5000) return "bg-red-100 dark:bg-red-900";
+  if (amount > 1000) return "bg-orange-100 dark:bg-orange-900";
+  if (amount > 500) return "bg-yellow-100 dark:bg-yellow-900";
+  if (amount > 100) return "bg-green-100 dark:bg-green-900";
+  return "bg-blue-100 dark:bg-blue-900";
 };
 
 // Load data from localStorage
